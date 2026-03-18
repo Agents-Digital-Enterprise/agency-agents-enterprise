@@ -1,0 +1,118 @@
+{
+  "mcpServers": {
+
+    "agency-agents": {
+      "command": "node",
+      "args": ["scripts/agents-mcp-server.js"],
+      "env": {},
+      "_note": "Local MCP server — persona resolution + library scan. Reads .claude/agents/*.md + library/. Offline."
+    },
+
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y", "@modelcontextprotocol/server-filesystem",
+        "/home/laga/agency-agents",
+        "/home/laga/.claude"
+      ],
+      "env": {},
+      "_note": "Read/write project files + Claude config dir."
+    },
+
+    "terminal": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-bash"],
+      "env": {},
+      "_note": "Execute local shell commands — npm, bun, git, wrangler, etc."
+    },
+
+    "ast-grep": {
+      "command": "npx",
+      "args": ["-y", "@ast-grep/mcp"],
+      "env": {},
+      "_note": "Structural code analysis via AST — impact radius, symbol search, refactor preview. Replaces sqlite/memory MCP."
+    },
+
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@cyanheads/git-mcp-server"],
+      "env": {},
+      "_note": "Local git operations — status, diff, log, branch, commit, push."
+    },
+
+    "docker": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-docker"],
+      "env": {},
+      "_note": "Docker local — build, run, inspect containers. Test locally before deploy."
+    },
+
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "${DATABASE_URL}"
+      },
+      "_note": "Connect to local/Supabase PostgreSQL. Set DATABASE_URL in .secrets/.env"
+    },
+
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {},
+      "_note": "HTTP requests — test local APIs, external endpoints, webhooks."
+    },
+
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "env": {},
+      "_note": "Headless browser — visual/E2E tests, screenshots, scraping."
+    },
+
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@github/github-mcp-server"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "_note": "GitHub API — repos, issues, PRs, comments. Run scripts/github-app-token.js first."
+    },
+
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase", "--access-token", "${SUPABASE_ACCESS_TOKEN}"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      },
+      "_note": "Supabase management — migrations, projects, DB introspection. Set SUPABASE_ACCESS_TOKEN in .secrets/.env"
+    },
+
+    "cloudflare": {
+      "command": "npx",
+      "args": ["-y", "@cloudflare/mcp-server-cloudflare"],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      },
+      "_note": "Cloudflare Workers/Pages deploy + management. Set tokens in .secrets/.env"
+    },
+
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {},
+      "_note": "Forces step-by-step reasoning before implementation. Mandatory pre-coding."
+    },
+
+    "promptfoo": {
+      "command": "npx",
+      "args": ["promptfoo", "mcp"],
+      "env": {
+        "PROMPTFOO_CONFIG": "./promptfooconfig.yaml"
+      },
+      "_note": "QA validation — agent output quality gate. Install: npm i -g promptfoo"
+    }
+
+  }
+}
