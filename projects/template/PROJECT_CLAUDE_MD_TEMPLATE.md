@@ -96,10 +96,47 @@ repo-root/
 
 ---
 
-## Role Assignments
+## Agent Roster
 
-| Role | Triggered by | Persona |
+Agents for this project are defined in `.claude/agents/skills/` — one file per selected agent.
+Each file is created by the CEO when the project is set up.
+
+> See `.claude/agents/skills/README.md` for file format and label conventions.
+
+To browse available agents: `agency-agents MCP → list_library` or `search_library { keyword: "..." }`
+
+---
+
+## Webhook — Label-Triggered Agent Sessions
+
+When a GitHub label of the form `agent:<key>` is added to an issue, the Cloudflare Worker fires a webhook that resolves the label to an agent session.
+
+### Label Convention (set by CEO at project creation)
+
+| Field | Value | Example |
 |---|---|---|
-| 🏛️ Architect | `[ARCHITECT]` in issue | `library/engineering/engineering-software-architect.md` |
-| 🔧 Team Lead  | `[LEAD]` in issue | `library/engineering/engineering-senior-developer.md` |
-| 🔍 QA Engineer | `[QA]` in issue | `library/engineering/engineering-code-reviewer.md` |
+| `name` | `agent:<key>` | `agent:security-engineer` |
+| `description` | `<category>/<filename>.md` | `engineering/engineering-security-engineer.md` |
+| `color` | domain color (see skills README) | `#e11d48` |
+
+The `description` field carries the exact master OS library path so the spawned agent knows precisely who it is — no guessing required.
+
+### Resolving a Webhook Locally
+
+```bash
+node scripts/webhook-label-handler.js '<github-webhook-json>'
+# or
+echo '<json>' | node scripts/webhook-label-handler.js
+```
+
+Output: `{ agent_key, library_path, skills_file, issue_number, repo, session_cmd }`
+
+### Flow
+
+```
+Issue labeled "agent:<key>"
+  → Cloudflare Worker receives GitHub webhook
+  → node scripts/webhook-label-handler.js
+  → resolves: label name + description → library path + skills file
+  → Claude Code session starts with correct persona
+```

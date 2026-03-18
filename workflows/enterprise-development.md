@@ -1,6 +1,6 @@
 # Workflow: Enterprise Development Sprint
 
-> Inspired by gstack (Garry Tan / YC, March 2026) — adapted for the Digital Enterprise OS with GitHub App auth, OpenViking memory, MCP servers, and async issue-based handoffs.
+> Inspired by gstack (Garry Tan / YC, March 2026) — adapted for the Digital Enterprise OS with GitHub App auth, filesystem-based Claude Code memory, MCP servers, and async issue-based handoffs.
 
 ## What is gstack?
 
@@ -24,15 +24,15 @@
 
 ## Enterprise vs gstack Mapping
 
-| gstack | Our Upstream Agent | Enterprise Overlay | MCP Enhancement |
+| gstack | Library Agent | Triggered by | MCP Enhancement |
 |---|---|---|---|
-| `/plan-ceo-review` | `product/product-sprint-prioritizer.md` | — (use direct) | `sequential-thinking` |
-| `/plan-eng-review` | `engineering/engineering-software-architect.md` | `architect.md` | `sequential-thinking` + `filesystem` |
-| `/review` | `engineering/engineering-code-reviewer.md` | `qa-engineer.md` | `filesystem` + `github` |
-| `/ship` | `engineering/engineering-git-workflow-master.md` | `team-lead.md` (PR step) | `github` MCP |
-| `/qa` | `testing/testing-reality-checker.md` | `qa-engineer.md` | `filesystem` + `ast-grep` |
+| `/plan-ceo-review` | `product/product-sprint-prioritizer.md` | `[CEO]` label / strategy trigger | `sequential-thinking` |
+| `/plan-eng-review` | `engineering/engineering-software-architect.md` | `agent:architect` label | `sequential-thinking` + `filesystem` |
+| `/review` | `engineering/engineering-code-reviewer.md` | `agent:qa` label | `filesystem` + `github` |
+| `/ship` | `engineering/engineering-git-workflow-master.md` | `agent:team-lead` label | `github` MCP |
+| `/qa` | `testing/testing-reality-checker.md` | `agent:qa` label | `filesystem` + `ast-grep` |
 | `/browse` | *(not yet — planned)* | *(Issue #5 — Heretic/browser)* | Puppeteer MCP |
-| `/retro` | `project-management/project-manager-senior.md` | — (use direct) | `github` (reads closed issues) |
+| `/retro` | `project-management/project-manager-senior.md` | manual / `[RETRO]` trigger | `github` (reads closed issues) |
 
 ---
 

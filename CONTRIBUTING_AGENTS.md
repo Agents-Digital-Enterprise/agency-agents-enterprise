@@ -28,9 +28,12 @@ agency-agents/
 │   ├── .env                    # Generated tokens
 │   └── mcp-servers.json        # MCP connection config
 ├── .claude/
-│   ├── mcp-config.json         # Full MCP server registry
-│   └── skills/                 # Agent skill scripts
-│       └── viking-sync.js      # OpenViking sync utility
+│   ├── mcp-config.json         # Full MCP server registry (gitignored — use mcp-config.example.json)
+│   ├── mcp-config.example.json # Sanitized MCP config template
+│   └── agents/
+│       ├── library/            # 100+ inline agent library (no submodule)
+│       ├── skills/             # Per-project agent roster (created by CEO)
+│       └── ceo.md              # Enterprise overlay: CEO / Project Factory
 ├── scripts/                    # Automation & tooling (all .js)
 │   ├── github-app-token.js     # Token generator
 │   └── github-logger.js        # GitHub comment formatter

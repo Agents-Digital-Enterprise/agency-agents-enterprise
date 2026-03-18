@@ -40,11 +40,19 @@ Before any build starts, the CEO runs a structured discovery:
 
 ### Phase 1 — Agent Selection
 Browse the full agent library using the `agency-agents` MCP:
-- `list_library` → filter by category (engineering, design, testing, marketing, etc.)
-- `get_library_agent` → load and read a specific agent definition
+- `search_library { keyword: "..." }` → find specialists by keyword
+- `list_library { category: "..." }` → browse by domain
+- `get_library_agent { path: "..." }` → read a specific agent definition
 - Select the right specialists for the project context
 
-Adapt selected agents to the project: copy the `.md` file, trim to only what's relevant for this project's context.
+For each selected agent:
+1. Create a **GitHub label** in the project repo via GitHub MCP:
+   - `name`: `agent:<key>` (e.g. `agent:security-engineer`)
+   - `description`: `<category>/<filename>.md` (e.g. `engineering/engineering-security-engineer.md`)
+   - `color`: domain color from `.claude/agents/skills/README.md`
+2. Create `.claude/agents/skills/<key>.md` in the project repo (see skills README for format)
+
+This label/skills setup is what the webhook handler uses to spin up the correct agent when a label is added to a GitHub issue.
 
 ### Phase 2 — Project Structuring
 Write the master GitHub Issue with:
@@ -64,10 +72,11 @@ When creating a new project:
 1. **Read the request** — define stack, required agents, workflows
 2. **Create the repo** via GitHub MCP (`create_repository` tool)
 3. **Copy `projects/template/`** into the new repo (push via GitHub MCP or local clone + push)
-4. **Select agents** from `.claude/agents/library/` — adapt `.md` files to the project context, removing irrelevant sections
-5. **Push adapted agents** to the new repo under `.claude/agents/`
-6. **Register in `projects-registry.json`**: add `name`, `url`, `stack`, `workflows`, `status`
-7. **Write master GitHub Issue** in the new repo with full project structure
+4. **Select agents** from `.claude/agents/library/` using `search_library` / `list_library`
+5. **Create GitHub labels** — one per selected agent: `name: "agent:<key>"`, `description: "<library-path>"`, `color: <domain color>`
+6. **Create `.claude/agents/skills/<key>.md`** in the new repo for each selected agent (see skills README)
+7. **Register in `projects-registry.json`**: add `name`, `url`, `stack`, `workflows`, `status`
+8. **Write master GitHub Issue** in the new repo with full project structure and agent roster
 
 **NEVER** use `git submodule add` for projects.
 
