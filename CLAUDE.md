@@ -34,7 +34,6 @@ echo "$GITHUB_TOKEN" | gh auth login --with-token
 ```
 
 ### On 401 / Bad credentials
-The fix is always:
 ```bash
 node scripts/github-app-token.js && source .secrets/.env && echo "$GITHUB_TOKEN" | gh auth login --with-token
 ```
@@ -64,21 +63,19 @@ echo "$GITHUB_TOKEN" | gh auth login --with-token
 # Use GitHub MCP server get_issue tool, or:
 node scripts/github-logger.js comment <N> <Role> "Reading context..."
 
-# Step 3 — Retrieve session memory
-node .claude/skills/viking-sync.js <ISSUE_NUMBER> --retrieve
-
-# Step 3b — If working on a project (not master OS tasks), read project root CLAUDE.md
-# Navigate to the project repo and read its CLAUDE.md for project-specific instructions
+# Step 3 — If working on a project (not master OS tasks), read project root CLAUDE.md
+# Consult projects-registry.json to find the project URL/path, then read its CLAUDE.md
 
 # Step 4 — Load your persona
-# Read: .claude/agents/<your-role>.md (which extends upstream persona)
+# Read: .claude/agents/<your-role>.md
+# Browse library: .claude/agents/library/<category>/<agent>.md
 # Then declare your role with a GitHub comment
 node scripts/github-logger.js comment <ISSUE_NUMBER> <Role> "Assuming <Role> role. Reading context..."
 ```
 
 ---
 
-## 3. Agent Persona System
+## 4. Agent Persona System
 
 ### How It Works
 
@@ -86,14 +83,12 @@ Personas are **filesystem-first** — no external server needed.
 
 ```
 .claude/agents/
-├── upstream/              ← git submodule: msitarzewski/agency-agents
+├── library/               ← full inline agent library (no submodule)
 │   ├── engineering/       ← 20+ engineering specialists
 │   ├── design/            ← UI/UX agents
 │   ├── testing/           ← QA specialists
-│   └── ...                ← marketing, product, strategy
-├── architect.md           ← Enterprise overlay → extends upstream Software Architect
-├── team-lead.md           ← Enterprise overlay → extends Senior Dev + Git Workflow Master
-├── qa-engineer.md         ← Enterprise overlay → extends Code Reviewer + Security Engineer
+│   └── ...                ← marketing, product, strategy, sales, etc.
+├── ceo.md                 ← Enterprise overlay — CEO / Project Factory
 └── README.md
 ```
 
@@ -101,63 +96,31 @@ Personas are **filesystem-first** — no external server needed.
 ```bash
 # Via MCP tool (in-session)
 # agency-agents MCP → resolve_role tool → pass last issue comment text
+# agency-agents MCP → list_library tool → browse by category
+# agency-agents MCP → get_library_agent tool → load specific agent
 
 # Manually inspect any persona:
-cat .claude/agents/architect.md
-cat .claude/agents/upstream/engineering/engineering-software-architect.md
+cat .claude/agents/ceo.md
+cat .claude/agents/library/engineering/engineering-backend-architect.md
 ```
 
-**To add a new specialist** from the upstream library:
-```bash
-# Browse available upstream agents
-ls .claude/agents/upstream/engineering/
-ls .claude/agents/upstream/design/
-ls .claude/agents/upstream/testing/
-
-# Create a thin enterprise overlay referencing it
-# Add trigger keywords to the Role Decision Matrix below
-```
-
-### Submodule — Org Fork + Upstream Sync
-
-The submodule at `.claude/agents/upstream/` points to the **org fork**:
-`https://github.com/Agents-Digital-Enterprise/agency-agents`
-
-This lets us customise personas freely. To pull new agents from the original repo:
-
-```bash
-# Inside the submodule
-cd .claude/agents/upstream
-
-# Fetch new commits from msitarzewski/agency-agents
-git fetch upstream
-git merge upstream/main    # or cherry-pick specific agents
-
-# Push customised version to org fork
-git push origin main
-
-# Back in root — update the submodule pointer
-cd ../../../
-git add .claude/agents/upstream
-git commit -m "chore(agents): sync upstream persona additions"
-```
-
-**Remotes inside submodule:**
-- `origin` → `Agents-Digital-Enterprise/agency-agents` (our customisable fork)
-- `upstream` → `msitarzewski/agency-agents` (original — pull-only)
+**To add or update a library agent:**
+- Edit the file directly in `.claude/agents/library/<category>/`
+- No submodule sync needed — the library is part of this repo
 
 ### Role Decision Matrix
 
 | Last comment trigger | Role to assume | Persona file |
 |---|---|---|
-| `[ARCHITECT]` / "design" / "plan" / "architecture" | Project Architect 🏛️ | `architect.md` |
-| `[LEAD]` / "implement" / "build" / "code" / "fix" | Team Lead 🔧 | `team-lead.md` |
-| `[QA]` / "review" / "validate" / "check" | QA Engineer 🔍 | `qa-engineer.md` |
-| No prior comment (first run) | Project Architect 🏛️ | `architect.md` |
+| `[CEO]` / "strategy" / "plan project" / "research" | CEO 👔 | `ceo.md` |
+| `[ARCHITECT]` / "design" / "plan" / "architecture" | Architect 🏛️ | `library/engineering/engineering-software-architect.md` |
+| `[LEAD]` / "implement" / "build" / "code" / "fix" | Team Lead 🔧 | `library/engineering/engineering-senior-developer.md` |
+| `[QA]` / "review" / "validate" / "check" | QA Engineer 🔍 | `library/engineering/engineering-code-reviewer.md` |
+| No prior comment (first run) | CEO 👔 | `ceo.md` |
 
 ---
 
-## 4. GitHub Comment Protocol — Global Rule
+## 5. GitHub Comment Protocol — Global Rule
 
 **Every single GitHub output must begin with:**
 
@@ -167,6 +130,7 @@ git commit -m "chore(agents): sync upstream persona additions"
 
 Examples:
 ```
+### 🤖 agent-digitals-git-orchestrator — 👔 CEO
 ### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect
 ### 🤖 agent-digitals-git-orchestrator — 🔧 Team Lead
 ### 🤖 agent-digitals-git-orchestrator — 🔍 QA Engineer
@@ -181,75 +145,57 @@ node scripts/github-logger.js status  <N> <Role>
 
 ---
 
-## 5. Memory System
+## 6. Memory System
 
-### Filesystem Persistent Context (`persist-context/`)
+Session memory is handled exclusively by **Claude Code auto-memory**:
+`/home/laga/.claude/projects/-home-laga-agency-agents/memory/`
 
-Zero-dependency, human-readable `.md` files. No server, no embeddings, no API keys.
+No external memory scripts or servers required. Memory persists automatically across sessions.
 
-```bash
-node .claude/skills/viking-sync.js master-os            # write snapshot (master OS)
-node .claude/skills/viking-sync.js master-os --retrieve # read current state
-node .claude/skills/viking-sync.js <issue-number>       # write issue-scoped snapshot
-node .claude/skills/viking-sync.js project/<slug>       # write project-scoped snapshot
+For project-specific context, read the project's `CLAUDE.md` (found via `projects-registry.json`).
+
+---
+
+## 7. Project Registry
+
+Projects are tracked in **`projects-registry.json`** at the repo root — no git submodules.
+
+```json
+[
+  {
+    "name": "project-slug",
+    "url": "https://github.com/Agents-Digital-Enterprise/repo",
+    "stack": ["..."],
+    "workflows": ["ci-cd", "code-review"],
+    "status": "active"
+  }
+]
 ```
 
-**Layer structure** in each `persist-context/` folder:
-
-| File | Layer | Purpose |
-|---|---|---|
-| `L0-identity.md` | L0 | Stable identity — project, stack, roles (rarely changes) |
-| `L1-session.md` | L1 | Active session state — overwritten each sync |
-| `L2-history/*.md` | L2 | Append-only archive — one file per sync, never deleted |
-
-**Key convention:**
-
-| Scope | Key | Path |
-|---|---|---|
-| Master OS | `master-os` | `persist-context/` |
-| Per project | `project/<slug>` | `projects/<slug>/persist-context/` |
-| Per issue | `<number>` | `persist-context/` |
-
-At session start, retrieve in order: **master-os → project → issue**.
-At session end, save in order: **issue → project** (if changed).
-
-### Claude Code Memory
-Stored in `/home/laga/.claude/projects/-home-laga-agency-agents/memory/`
+**Rules:**
+- Never use `git submodule add` for projects
+- When creating a new project: register it in `projects-registry.json`
+- Access projects via their `url` (GitHub MCP) or clone locally
 
 ---
 
-## 6. Issue Navigation
+## 8. MCP Servers
 
-Issues in `Agents-Digital-Enterprise/agency-agents-enterprise`:
-
-| Issue | Title | Status |
-|---|---|---|
-| [#1](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/1) | Architecture: Plugin Stack & Integration Design | ✅ Closed |
-| [#2](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/2) | Sprint 1: Dependencies, MCP Verification, Filesystem Agent System | 🔄 Active |
-| [#5](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/5) | Repo Audit: Inconsistent Docs — Human Review Required | 🔄 Open |
-| [#6](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/6) | Architecture: Multi-Project Support — projects/ layer | ✅ Closed |
-| [#7](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/7) | Infra: Install OpenViking — persistent agent memory | ✅ Closed |
-| [#8](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise/issues/8) | Architecture: Replace OpenViking with filesystem persist-context/ | 🔄 Active |
-
-Each issue's **first comment** contains a link to the previous issue for navigation.
-
----
-
-## 7. MCP Servers
-
-Configured in `.claude/mcp-config.json`:
+Configured in `.claude/mcp-config.json` (gitignored — copy from `.claude/mcp-config.example.json`):
 
 | Server | Type | Purpose |
 |---|---|---|
-| `agency-agents` | Local Node.js script | Persona resolution from `.claude/agents/` |
+| `agency-agents` | Local Node.js | Persona resolution + library browsing |
 | `filesystem` | npx | Read/write project files + `.claude/` dir |
 | `github` | npx | Full GitHub API (needs `GITHUB_TOKEN`) |
-| `sequential-thinking` | npx | Mandatory pre-coding step (Superpowers) |
+| `sequential-thinking` | npx | Mandatory pre-coding step |
+| `ast-grep` | npx | Structural code analysis — impact radius, symbol search |
 | `promptfoo` | npx | QA eval gate |
+| `cloudflare` | npx | Cloudflare Workers/Pages API |
 
 ---
 
-## 8. Scripts Quick Reference
+## 9. Scripts Quick Reference
 
 ```bash
 # Auth
@@ -259,11 +205,7 @@ node scripts/github-app-token.js               # generate + write .secrets/.env
 node scripts/github-logger.js comment N Role "msg"
 node scripts/github-logger.js handoff N FromRole ToRole "msg"
 
-# Memory
-node .claude/skills/viking-sync.js N
-node .claude/skills/viking-sync.js N --retrieve
-
-# Persona resolution
+# Persona resolution (MCP)
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"resolve_role","arguments":{"comment_text":"<paste last comment>"}}}' \
   | node scripts/agents-mcp-server.js
 
@@ -273,7 +215,7 @@ npx promptfoo eval --config promptfooconfig.yaml
 
 ---
 
-## 9. Technical Standards
+## 10. Technical Standards
 
 - All scripts: **Node.js ES Modules** (`.js`, `"type":"module"` in `package.json`)
 - No bash scripts
@@ -282,14 +224,12 @@ npx promptfoo eval --config promptfooconfig.yaml
 
 ---
 
-## 10. Human-in-the-Loop Checkpoints — MANDATORY
+## 11. Human-in-the-Loop Checkpoints — MANDATORY
 
 > ⛔ **Critical rule:** Architecture-level decisions require explicit human approval before execution.
 > Never delete files, restructure the repo, change authentication flows, or modify CI/CD configuration without a human sign-off.
 
 ### When to STOP and Ask
-
-You **must** pause and post a GitHub Issue or comment requesting human review before proceeding with any of the following:
 
 | Category | Examples |
 |---|---|
@@ -297,22 +237,17 @@ You **must** pause and post a GitHub Issue or comment requesting human review be
 | **Architecture changes** | Adding/removing MCP servers, changing agent roles, restructuring directories |
 | **Auth/security changes** | Modifying `github-app-token.js`, changing key paths, altering GitHub App config |
 | **Dependency changes** | Adding/removing npm packages, changing `package.json` type or engine |
-| **Submodule changes** | Repointing submodule, merging upstream, changing remotes |
+| **Registry changes** | Adding/removing projects from `projects-registry.json` in bulk |
 | **Workflow changes** | Modifying `AGENT_PROTOCOLS.md`, `CONTRIBUTING_AGENTS.md`, or this file |
-| **External integrations** | Adding new MCP servers, changing OpenViking schema, new PromptFoo providers |
+| **External integrations** | Adding new MCP servers, new PromptFoo providers |
 
 ### How to Request Human Approval
 
-1. Post a GitHub Issue comment with label `[HUMAN CHECKPOINT]`:
-   ```bash
-   node scripts/github-logger.js comment <N> <Role> "[HUMAN CHECKPOINT] Requesting approval for: <describe change>"
-   ```
-2. Include in the comment:
-   - **What** you want to change
-   - **Why** it is needed
-   - **Risk** if applied / if not applied
-   - **Proposed action** (step by step)
-3. **Stop all work** on that task until a human replies with explicit approval.
+```bash
+node scripts/github-logger.js comment <N> <Role> "[HUMAN CHECKPOINT] Requesting approval for: <describe change>"
+```
+
+Include: **What**, **Why**, **Risk**, **Proposed action**. Stop until human replies.
 
 ### What Agents Are Allowed Without Approval
 
@@ -321,8 +256,4 @@ You **must** pause and post a GitHub Issue or comment requesting human review be
 - Running tests, running QA evals
 - Posting GitHub comments / handoffs
 - Generating tokens (session-local, not config changes)
-- Saving/retrieving OpenViking memory
-
-### Why This Rule Exists
-
-Autonomous agents have full filesystem and GitHub API access. A single wrong delete or config change can break authentication, lose work, or corrupt the submodule state — all of which are hard to reverse. Human checkpoints are the safety valve that keeps the system trustworthy.
+- Browsing and loading personas from `.claude/agents/library/`

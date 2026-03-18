@@ -9,25 +9,24 @@
 
 | Property | Value |
 |---|---|
-| **Repo** | `org/repo-name` |
-| **Organisation** | org |
-| **Stack** | TypeScript, Node.js (replace with real stack) |
+| **Repo** | `Agents-Digital-Enterprise/repo-name` |
+| **Organisation** | Agents-Digital-Enterprise |
+| **Stack** | [Replace with real stack] |
 | **Default branch** | `main` |
-| **Issue tracker** | `org/repo-name` (GitHub Issues) |
+| **Issue tracker** | `Agents-Digital-Enterprise/repo-name` (GitHub Issues) |
 
 ---
 
-## Viking Memory
+## Session Checklist
 
-Retrieve at session start. Save at session end.
-
-```bash
-node /path/to/agency-agents-enterprise/.claude/skills/viking-sync.js --key viking://memories/project/SLUG --retrieve
-# ... do the work ...
-node /path/to/agency-agents-enterprise/.claude/skills/viking-sync.js --key viking://memories/project/SLUG
 ```
-
-Memory key: `viking://memories/project/REPLACE_WITH_SLUG`
+1. Auth: node ./scripts/github-app-token.js && source .secrets/.env
+2. Read issue → determine role (see master OS Role Decision Matrix)
+3. Load persona from master OS .claude/agents/library/<category>/<agent>.md
+4. Post "Assuming <Role> on <Project>..." GitHub comment
+5. Do the work
+6. Post handoff comment
+```
 
 ---
 
@@ -54,7 +53,7 @@ npm run lint      # linting
 ### Forbidden Actions
 - Do not modify `.env` or secrets files
 - Do not run database migrations without explicit human approval
-- Do not delete files without human checkpoint (see master OS CLAUDE.md §10)
+- Do not delete files without human checkpoint (see master OS CLAUDE.md §11)
 
 ---
 
@@ -63,9 +62,10 @@ npm run lint      # linting
 ```
 repo-root/
 ├── CLAUDE.md           ← this file
+├── .env.example        ← env vars template (never commit .env)
+├── scripts/            ← github-app-token.js, github-logger.js
 ├── src/                ← application source
 ├── tests/              ← test suite
-├── scripts/            ← utility scripts
 └── docs/               ← documentation
 ```
 
@@ -75,21 +75,6 @@ repo-root/
 
 | Role | Triggered by | Persona |
 |---|---|---|
-| 🏛️ Architect | `[ARCHITECT]` in issue title/label | master OS `architect.md` |
-| 🔧 Team Lead  | `[LEAD]` in issue title/label | master OS `team-lead.md` |
-| 🔍 QA Engineer | `[QA]` in issue title/label | master OS `qa-engineer.md` |
-
----
-
-## Session Checklist
-
-```
-1. Auth: node <master-os-path>/scripts/github-app-token.js
-2. Load project Viking memory: viking-sync --key viking://memories/project/<slug> --retrieve
-3. Read issue → determine role
-4. Load role persona from master OS .claude/agents/<role>.md
-5. Post "Assuming <Role> on <Project>..." GitHub comment
-6. Do the work
-7. Save Viking memory: viking-sync --key viking://memories/project/<slug>
-8. Post handoff comment
-```
+| 🏛️ Architect | `[ARCHITECT]` in issue | `library/engineering/engineering-software-architect.md` |
+| 🔧 Team Lead  | `[LEAD]` in issue | `library/engineering/engineering-senior-developer.md` |
+| 🔍 QA Engineer | `[QA]` in issue | `library/engineering/engineering-code-reviewer.md` |

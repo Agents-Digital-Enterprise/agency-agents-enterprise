@@ -1,0 +1,10 @@
+[
+  {
+    "name": "portfolio-luiszmarques",
+    "display_name": "Portfolio — Luis Marques",
+    "url": "https://github.com/Agents-Digital-Enterprise/portfolio-luiszmarques",
+    "stack": ["Astro", "TypeScript", "TailwindCSS", "Vue (islands)"],
+    "workflows": ["ci-cd", "code-review"],
+    "status": "active"
+  }
+]

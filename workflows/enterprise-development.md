@@ -44,7 +44,7 @@ node scripts/github-app-token.js
 source .secrets/.env
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 ```
-Read last issue comment → determine role (see `CLAUDE.md §3`)
+Read last issue comment → determine role (see `CLAUDE.md §4`)
 
 ---
 
@@ -68,7 +68,6 @@ Deliverables:
 **Handoff:**
 ```bash
 node scripts/github-logger.js handoff <N> Architect TeamLead "Architecture decided. Issues created. Ready to implement."
-node .claude/skills/viking-sync.js <N>
 ```
 
 ---
@@ -80,7 +79,7 @@ node .claude/skills/viking-sync.js <N>
 ```
 Activate Team Lead.
 
-Read last comment on issue #<N>. Retrieve Viking memory.
+Read last comment on issue #<N>.
 Implement the feature following TDD. Use sequential-thinking MCP before coding.
 ```
 
@@ -97,7 +96,6 @@ gh pr create --title "feat: ..." --body "Closes #<N>"
 **Handoff:**
 ```bash
 node scripts/github-logger.js handoff <N> TeamLead QA "Implementation complete. PR #<PR> open. Tests passing."
-node .claude/skills/viking-sync.js <N>
 ```
 
 ---
@@ -109,7 +107,7 @@ node .claude/skills/viking-sync.js <N>
 ```
 Activate QA Engineer, extended by Reality Checker persona.
 
-Read last comment on issue #<N>. Retrieve Viking memory.
+Read last comment on issue #<N>.
 Review PR #<PR>. Run all QA checks. Default to NEEDS WORK.
 ```
 
@@ -164,13 +162,13 @@ Output:
 
 | Agent | File | Role |
 |---|---|---|
-| Product Sprint Prioritizer | `upstream/product/product-sprint-prioritizer.md` | CEO review, sprint breakdown |
-| Software Architect | `upstream/engineering/engineering-software-architect.md` | Architecture + ADRs |
-| Senior Developer | `upstream/engineering/engineering-senior-developer.md` | Implementation core |
-| Git Workflow Master | `upstream/engineering/engineering-git-workflow-master.md` | Commits + PR |
-| Code Reviewer | `upstream/engineering/engineering-code-reviewer.md` | PR review |
-| Reality Checker | `upstream/testing/testing-reality-checker.md` | Evidence-based QA gate |
-| Project Manager Senior | `upstream/project-management/project-manager-senior.md` | Retrospective |
+| Product Sprint Prioritizer | `library/product/product-sprint-prioritizer.md` | CEO review, sprint breakdown |
+| Software Architect | `library/engineering/engineering-software-architect.md` | Architecture + ADRs |
+| Senior Developer | `library/engineering/engineering-senior-developer.md` | Implementation core |
+| Git Workflow Master | `library/engineering/engineering-git-workflow-master.md` | Commits + PR |
+| Code Reviewer | `library/engineering/engineering-code-reviewer.md` | PR review |
+| Reality Checker | `library/testing/testing-reality-checker.md` | Evidence-based QA gate |
+| Project Manager Senior | `library/project-management/project-manager-senior.md` | Retrospective |
 
 Enterprise overlays: `architect.md`, `team-lead.md`, `qa-engineer.md`
 
@@ -182,12 +180,12 @@ Enterprise overlays: `architect.md`, `team-lead.md`, `qa-engineer.md`
 |---|---|---|
 | GitHub App auth (App token, not PAT) | ✅ | ❌ Personal only |
 | Async handoff via GitHub Issues | ✅ | ❌ Single-session |
-| Persistent memory (OpenViking) | ✅ | ❌ |
+| Persistent memory (Claude Code auto-memory) | ✅ | ❌ |
 | MCP server ecosystem | ✅ | ❌ |
 | TDD enforcement gate | ✅ | Partial (`/qa`) |
 | PromptFoo output validation | ✅ | ❌ |
 | Human-readable audit trail | ✅ (GitHub Issues) | ❌ |
-| Version-controlled personas (submodule) | ✅ | ❌ |
+| Inline agent library (no submodule) | ✅ | ❌ |
 
 ## What gstack Has That We Should Add
 

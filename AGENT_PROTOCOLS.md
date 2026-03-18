@@ -24,9 +24,8 @@ This is the enterprise signature. Without it, the comment is invalid and will fa
 [ ] 2. Run: node scripts/github-app-token.js (if token expired)
 [ ] 3. source .secrets/.env
 [ ] 4. Read last issue comment → determine role (see CLAUDE.md §3)
-[ ] 5. Retrieve Viking memory: node .claude/skills/viking-sync.js <N> --retrieve
-[ ] 6. Read relevant source files via filesystem MCP (never assume state from memory)
-[ ] 7. Declare role with a GitHub comment before doing any work
+[ ] 5. Read relevant source files via filesystem MCP (never assume state from memory)
+[ ] 6. Declare role with a GitHub comment before doing any work
 ```
 
 ---
@@ -70,27 +69,7 @@ Types: `feat` `fix` `test` `refactor` `docs` `chore`
 
 ## 4. Handoff Protocol
 
-### 4.1 Local Memory (always before handoff)
-```bash
-node .claude/skills/viking-sync.js <issue_number>
-```
-
-Memory payload must include:
-```json
-{
-  "issue": <number>,
-  "role": "<current>",
-  "status": "ready_for_handoff",
-  "next_role": "<Architect|TeamLead|QA>",
-  "completed_steps": ["..."],
-  "pending_steps": ["..."],
-  "files_modified": ["..."],
-  "test_status": "passing|failing|not_written",
-  "blockers": []
-}
-```
-
-### 4.2 GitHub Handoff Comment
+### 4.1 GitHub Handoff Comment
 ```bash
 node scripts/github-logger.js handoff <N> <FromRole> <ToRole> "<one-line summary>"
 ```
@@ -105,10 +84,6 @@ Required comment structure:
 | Task | Status |
 |---|---|
 | <task> | ✅ Done / 🔄 In Progress / ❌ Blocked |
-
-#### Memory
-- Viking ID: `viking://memories/<N>`
-- Snapshot: <ISO timestamp>
 
 #### Next Step
 **Role needed:** <emoji> <NextRole>
@@ -171,15 +146,14 @@ npx promptfoo view                                  # browser report
 ### Sequential Thinking (Team Lead, before coding)
 Invoked via `sequential-thinking` MCP tool in-session.
 
-### Upstream Agents (any role, for specialist tasks)
+### Library Agents (any role, for specialist tasks)
 ```bash
-# Browse available specialists
-ls .claude/agents/upstream/engineering/
-ls .claude/agents/upstream/design/
-ls .claude/agents/upstream/testing/
+# Browse available specialists via MCP
+# agency-agents MCP → list_library → filter by category: engineering, design, testing, etc.
+# agency-agents MCP → get_library_agent → load specific agent
 
 # Example: activate security review
-# "Activate engineering-security-engineer mode and review this PR"
+# "Activate engineering-security-engineer from library and review this PR"
 ```
 
 ---
@@ -190,7 +164,6 @@ A task is **not done** until:
 - [ ] All tests pass (`npm test`)
 - [ ] `promptfoo eval` returns 0 failures
 - [ ] GitHub Issue has a Handoff comment with correct signature
-- [ ] Viking memory indexed (`viking://memories/<N>`)
 - [ ] PR open and linked to issue (if code was written)
 
 ---
