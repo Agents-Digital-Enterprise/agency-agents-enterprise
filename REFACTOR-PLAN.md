@@ -293,13 +293,14 @@ Para análise de código:
 
 | Passo | Status | Notas | Commit |
 |---|---|---|---|
-| 1 — Inline library + rm upstream submodule | ⏳ Pendente | | |
-| 1b — Update agents-mcp-server.js | ⏳ Pendente | | |
-| 2 — Remove portfolio submodule + registry JSON | ⏳ Pendente | | |
-| 3 — Template scripts + .env.example + .gitignore | ⏳ Pendente | | |
-| 4 — ast-grep MCP + .code-review-graphignore | ⏳ Pendente | | |
-| 5 — Remove persist-context + viking refs | ⏳ Pendente | | |
-| 6 — Security: gitignore mcp-config + env vars | ⏳ Pendente | | |
-| 7 — CEO agent update | ⏳ Pendente | | |
-| 8 — JSON Schema + GitHub Actions | ⏳ Pendente | | |
-| 9 — Cleanup + final git status | ⏳ Pendente | | |
+| 1 — Inline library + rm upstream submodule | ✅ Feito | library/ como ficheiros normais | 190358a |
+| 1b — Update agents-mcp-server.js | ✅ Feito | v2: list_library + get_library_agent | 190358a |
+| 1c — Remove git metadata da library | ✅ Feito | .git, .github, .gitignore, .gitattributes | 190358a |
+| 2 — Remove portfolio submodule + registry JSON | ✅ Feito | projects-registry.json + schema | e0e9b0e |
+| 3 — Template scripts + .env.example + .gitignore | ✅ Feito | scripts/ copiados, template limpo | e0e9b0e |
+| 4 — ast-grep MCP + .code-review-graphignore | ✅ Feito | mcp-config.json + .code-review-graphignore | e0e9b0e |
+| 5 — Remove persist-context + viking refs | ✅ Feito | persist-context/ deletado, docs limpos | e0e9b0e |
+| 6 — Security: gitignore mcp-config + env vars | ✅ Feito | token exposto limpo via squash + mcp-config.example.json | c0d9842 |
+| 7 — CEO agent update | ✅ Feito | Project Factory Workflow adicionado | e0e9b0e |
+| 8 — JSON Schema + GitHub Actions | ✅ Feito | validate-registry.yml | e0e9b0e |
+| 9 — Cleanup + final git status | ✅ Feito | temp-agency-agents removido | — |
