@@ -1,0 +1,9 @@
+{
+  "name": "REPLACE_WITH_PROJECT_SLUG",
+  "display_name": "REPLACE WITH Display Name",
+  "repo": "org/repo-name",
+  "default_branch": "main",
+  "stack": ["REPLACE", "WITH", "STACK"],
+  "viking_memory_key": "viking://memories/project/REPLACE_WITH_PROJECT_SLUG",
+  "filesystem_root": "/home/laga/projects/REPLACE_WITH_PROJECT_SLUG"
+}

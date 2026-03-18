@@ -1,0 +1,3 @@
+[submodule "projects/portfolio-luiszmarques"]
+	path = projects/portfolio-luiszmarques
+	url = https://github.com/Agents-Digital-Enterprise/portfolio-luiszmarques.git

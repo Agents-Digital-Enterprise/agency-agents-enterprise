@@ -1,0 +1,124 @@
+# promptfooconfig.yaml
+# Validates that agent context dumps follow Digital Enterprise OS protocols.
+#
+# Two tiers:
+#   Tier 1 (JS asserts) — runs without any API key
+#   Tier 2 (LLM judge)  — requires ANTHROPIC_API_KEY
+#
+# Run Tier 1 only: npx promptfoo eval --config promptfooconfig.yaml
+# Run all tiers:   ANTHROPIC_API_KEY=<key> npx promptfoo eval --config promptfooconfig.yaml
+
+description: "Digital Enterprise OS — Agent Context Dump Validation"
+
+# Prompt passes the test var straight through — we assert on the content, not generate it
+prompts:
+  - "{{output}}"
+
+providers:
+  # Tier 1 — passthrough, no API key needed
+  - id: "file://scripts/promptfoo-passthrough.js"
+    label: "passthrough"
+  # Tier 2 — LLM judge (requires ANTHROPIC_API_KEY)
+  - id: anthropic:claude-haiku-4-5-20251001
+    label: "validator"
+    config:
+      temperature: 0
+
+tests:
+  # ── Tier 1: JS assertions (no API key needed) ─────────────────
+
+  - description: "Has required identification header"
+    vars:
+      output: |
+        ### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect
+
+        **Summary:** Test comment.
+
+        ---
+        <sub>🕐 2026-03-15 · 🔑 App ID: `2984613`</sub>
+    assert:
+      - type: javascript
+        value: "output.includes('### 🤖') && output.includes('agent-digitals-git-orchestrator')"
+
+  - description: "Handoff contains Progress table"
+    vars:
+      output: |
+        ### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect → Handoff
+
+        **Summary:** Done.
+
+        #### Progress
+        | Task | Status |
+        |---|---|
+        | Setup | ✅ Done |
+
+        #### Memory
+        - Viking ID: `viking://memories/1`
+
+        ---
+        <sub>🕐 2026-03-15 · 🔑 App ID: `2984613`</sub>
+    assert:
+      - type: javascript
+        value: "output.includes('| Task |') && output.includes('| Status |')"
+
+  - description: "Handoff contains Viking memory ID"
+    vars:
+      output: |
+        ### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect → Handoff
+
+        #### Memory
+        - Viking ID: `viking://memories/2`
+
+        ---
+        <sub>🕐 2026-03-15 · App ID: `2984613`</sub>
+    assert:
+      - type: javascript
+        value: "output.includes('viking://memories/')"
+
+  - description: "Footer contains App ID"
+    vars:
+      output: |
+        ### 🤖 agent-digitals-git-orchestrator — 🔧 Team Lead
+
+        **Summary:** Built feature.
+
+        ---
+        <sub>🕐 2026-03-15 14:00:00 UTC · 🔑 App ID: `2984613`</sub>
+    assert:
+      - type: javascript
+        value: "output.includes('App ID') && output.includes('2984613')"
+
+  # ── Tier 2: LLM judge (requires ANTHROPIC_API_KEY) ───────────
+
+  - description: "[LLM] Full handoff comment is professional and structured"
+    vars:
+      output: |
+        ### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect
+
+        **Summary:** Completed system initialization and scaffolded all core governance files.
+
+        #### Progress
+        | Task | Status |
+        |---|---|
+        | CLAUDE.md created | ✅ Done |
+        | AGENT_PROTOCOLS.md created | ✅ Done |
+
+        #### Memory
+        - Viking ID: `viking://memories/1`
+
+        #### Next Step
+        **Role needed:** 🔧 Team Lead
+        **Action:** Install dependencies and verify MCP servers.
+
+        ---
+        <sub>🕐 2026-03-15 14:00:00 UTC · 🔑 App ID: `2984613`</sub>
+    assert:
+      - type: llm-rubric
+        value: |
+          Score PASS only if ALL of these are present:
+          1. Starts with "### 🤖 agent-digitals-git-orchestrator" identification header
+          2. Has a clear **Summary** paragraph
+          3. Has a markdown progress table with Task and Status columns
+          4. References a Viking memory key in format viking://memories/<number>
+          5. Ends with a footer containing App ID and timestamp
+        threshold: 0.8

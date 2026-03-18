@@ -1,0 +1,68 @@
+{
+  "_usage": "Copy this file to mcp-config.json and fill in your values. mcp-config.json is gitignored — never commit it. Run 'node scripts/github-app-token.js && source .secrets/.env' before any GitHub operations.",
+  "_architecture": "All persona/agent definitions live in .claude/agents/*.md — filesystem-first, offline-capable, no remote server needed.",
+
+  "mcpServers": {
+
+    "agency-agents": {
+      "command": "node",
+      "args": ["scripts/agents-mcp-server.js"],
+      "env": {},
+      "_note": "Local filesystem MCP server. Reads .claude/agents/*.md + library/. No network, no auth, works offline."
+    },
+
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y", "@modelcontextprotocol/server-filesystem",
+        "/home/<your-user>/agency-agents",
+        "/home/<your-user>/.claude"
+      ],
+      "env": {},
+      "_note": "File read/write/search across the whole project + Claude config dir."
+    },
+
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@github/github-mcp-server"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "_note": "Official GitHub MCP server. Requires GITHUB_TOKEN — run scripts/github-app-token.js first."
+    },
+
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {},
+      "_note": "Superpowers layer — forces step-by-step thinking before implementation."
+    },
+
+    "promptfoo": {
+      "command": "npx",
+      "args": ["promptfoo", "mcp"],
+      "env": {
+        "PROMPTFOO_CONFIG": "./promptfooconfig.yaml"
+      },
+      "_note": "QA validation layer. Install: npm i -g promptfoo."
+    },
+
+    "ast-grep": {
+      "command": "npx",
+      "args": ["-y", "@ast-grep/mcp"],
+      "env": {},
+      "_note": "Structural code analysis via AST. Use for impact radius, symbol search, refactor preview."
+    },
+
+    "cloudflare": {
+      "command": "npx",
+      "args": ["-y", "@cloudflare/mcp-server-cloudflare"],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      },
+      "_note": "Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in .secrets/.env"
+    }
+
+  }
+}
