@@ -1,24 +1,13 @@
 # Workflow: Enterprise Development Sprint
 
-> Inspired by gstack (Garry Tan / YC, March 2026) — adapted for the Digital Enterprise OS with GitHub App auth, filesystem-based Claude Code memory, MCP servers, and async issue-based handoffs.
+> Inspired by gstack (Garry Tan / YC, March 2026) — adapted for the Digital Enterprise OS with GitHub App auth, filesystem-based Claude Code memory, MCP servers, label-triggered agent sessions, and async issue-based handoffs.
 
 ## What is gstack?
 
-**gstack** (https://github.com/garrytan/gstack) is Garry Tan's Claude Code setup released March 14 2026. It provides 8 slash-command skills that assign Claude a role rather than a prompt variation:
-
-| gstack skill | Role | Browser daemon |
-|---|---|---|
-| `/plan-ceo-review` | Founder thinking, first-principles | No |
-| `/plan-eng-review` | Technical architecture + diagrams | No |
-| `/review` | Paranoid bug hunter | No |
-| `/ship` | PR automation + tests | No |
-| `/qa` | Systematic diff-based testing | Yes |
-| `/browse` | Persistent Chromium QA | Yes |
-| `/setup-browser-cookies` | Session management | Yes |
-| `/retro` | Engineering retrospective | No |
+**gstack** is Garry Tan's Claude Code setup providing slash-command skills that assign Claude a role rather than a prompt variation.
 
 **Key gstack insight:** Role = mental model, not prompt variation.
-**gstack limitation:** No MCP, no async memory, no GitHub App auth, no issue-based handoff trail.
+**gstack limitation:** No MCP, no async memory, no GitHub App auth, no issue-based handoff trail, no webhook-triggered sessions.
 
 ---
 
@@ -36,19 +25,66 @@
 
 ---
 
+## Tech-Stack Workflows
+
+For stack-specific setup, agent rosters, deploy commands, and QA checklists:
+
+| Stack | Workflow |
+|---|---|
+| 01 — Frontend Light (Nuxt 3 + CF Pages) | [`workflows/tech-stacks/01-frontend-light.md`](tech-stacks/01-frontend-light.md) |
+| 02 — Frontend + Workers + Supabase | [`workflows/tech-stacks/02-frontend-workers-supabase.md`](tech-stacks/02-frontend-workers-supabase.md) |
+| 03 — Monorepo Heavy (Bun + ElysiaJS) | [`workflows/tech-stacks/03-monorepo-heavy-bun.md`](tech-stacks/03-monorepo-heavy-bun.md) |
+
+---
+
+## Skills & Webhook Setup (Required for Every Project)
+
+Before any sprint begins, the CEO must configure the agent roster for the project.
+
+### What the CEO Does at Project Creation
+
+1. Select agents using `agency-agents MCP → search_library` / `list_library`
+2. For each selected agent, create a GitHub label:
+   - `name`: `agent:<key>` (e.g. `agent:security-engineer`)
+   - `description`: `<category>/<filename>.md` (e.g. `engineering/engineering-security-engineer.md`)
+   - `color`: domain color (see `.claude/agents/skills/README.md`)
+3. Create `.claude/agents/skills/<key>.md` in the project repo
+
+### How Sessions Are Triggered
+
+When a GitHub label `agent:<key>` is added to an issue, GitHub fires a webhook:
+
+```
+Issue labeled "agent:<key>"
+  → GitHub sends POST webhook to configured endpoint
+  → node scripts/webhook-label-handler.js '<payload>'
+  → { agent_key, library_path, skills_file, issue_number, session_cmd }
+  → Claude Code session starts with correct persona
+```
+
+Resolve manually:
+```bash
+node scripts/webhook-label-handler.js '<github-webhook-json>'
+```
+
+---
+
 ## The Workflow
 
 ### Step 0 — Session Bootstrap (every session)
+
 ```bash
 node scripts/github-app-token.js
 source .secrets/.env
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 ```
-Read last issue comment → determine role (see `CLAUDE.md §4`)
+
+Read last issue comment → determine role via webhook label or `agency-agents MCP → resolve_role`.
 
 ---
 
-### Step 1 — CEO Review (Architect + Sprint Prioritizer)
+### Step 1 — CEO Review (Sprint Prioritizer + Architect)
+
 *Equivalent to gstack `/plan-ceo-review` + `/plan-eng-review`*
 
 **Activate:**
@@ -73,6 +109,7 @@ node scripts/github-logger.js handoff <N> Architect TeamLead "Architecture decid
 ---
 
 ### Step 2 — Implementation (Team Lead + Git Workflow Master)
+
 *Equivalent to gstack `/ship` — but with TDD and GitHub App PR*
 
 **Activate:**
@@ -101,6 +138,7 @@ node scripts/github-logger.js handoff <N> TeamLead QA "Implementation complete. 
 ---
 
 ### Step 3 — Review + QA (QA Engineer + Reality Checker)
+
 *Equivalent to gstack `/review` + `/qa`*
 
 **Activate:**
@@ -111,43 +149,33 @@ Read last comment on issue #<N>.
 Review PR #<PR>. Run all QA checks. Default to NEEDS WORK.
 ```
 
-**QA Checklist:**
+**QA Checklist (base — see tech-stack workflow for stack-specific checks):**
 ```
-[ ] npm test → 0 failures (run independently)
-[ ] git log shows test commit before code commit
+[ ] Tests pass with 0 failures
+[ ] git log shows test commit before code commit (TDD)
 [ ] Acceptance criteria in issue fully met
 [ ] No secrets in diff
 [ ] PR description references issue (Closes #N)
 ```
 
-**On PASS:**
+**On PASS — merge and close:**
 ```bash
 node scripts/github-logger.js handoff <N> QA System "All criteria met. Merging."
-# Merge via GitHub MCP: update_pull_request(state: merged) or:
-curl -X PUT -H "Authorization: Bearer $GITHUB_TOKEN" \
-  https://api.github.com/repos/Agents-Digital-Enterprise/agency-agents-enterprise/pulls/<PR>/merge \
-  -d '{"merge_method":"squash"}'
-# Close issue via API
-curl -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" \
-  https://api.github.com/repos/Agents-Digital-Enterprise/agency-agents-enterprise/issues/<N> \
-  -d '{"state":"closed","state_reason":"completed"}'
+# GitHub MCP: merge PR, close issue
 ```
 
 ---
 
 ### Step 4 — Retrospective (Project Manager Senior)
-*Equivalent to gstack `/retro` — runs after every sprint (3-5 issues)*
+
+*Equivalent to gstack `/retro` — runs after every sprint (3–5 issues)*
 
 **Activate:**
 ```
 Activate Project Manager Senior.
 
-Read the last 5 closed issues in Agents-Digital-Enterprise/agency-agents-enterprise.
-Analyse:
-1. What shipped vs what was planned
-2. Handoff delays (time between role comments)
-3. Test failures caught in QA
-4. Patterns to improve
+Read the last 5 closed issues.
+Analyse: shipped vs planned, handoff delays, test failures caught in QA, patterns.
 
 Output:
 - Sprint summary with velocity metrics
@@ -181,8 +209,8 @@ Library-backed roles: `library/engineering/engineering-software-architect.md`, `
 | Async handoff via GitHub Issues | ✅ | ❌ Single-session |
 | Persistent memory (Claude Code auto-memory) | ✅ | ❌ |
 | MCP server ecosystem | ✅ | ❌ |
+| Label-triggered agent sessions via webhook | ✅ | ❌ |
 | TDD enforcement gate | ✅ | Partial (`/qa`) |
-| PromptFoo output validation | ✅ | ❌ |
 | Human-readable audit trail | ✅ (GitHub Issues) | ❌ |
 | Inline agent library (no submodule) | ✅ | ❌ |
 
@@ -191,5 +219,4 @@ Library-backed roles: `library/engineering/engineering-software-architect.md`, `
 | Feature | Status |
 |---|---|
 | `/browse` persistent Chromium QA | Issue #5 (planned) |
-| `/retro` automatic metrics from git/issues | Add to this workflow ✅ done above |
 | Parallel sessions via Conductor | Future — needs worktree support |
