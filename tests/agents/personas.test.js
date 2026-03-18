@@ -1,194 +1,274 @@
 /**
  * tests/agents/personas.test.js
  *
- * Integration tests for the filesystem-based agent persona system.
- * Tests: overlay files load, upstream references exist, MCP server tools respond correctly.
+ * Integration tests for the agent persona system.
+ * Tests: CEO overlay, library-backed roles, MCP server tools (v3).
  *
  * Run: node --test tests/agents/personas.test.js
  * Requires: Node.js >= 18 (built-in test runner)
  */
 
-import { describe, it, before } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
-const ROOT       = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const AGENTS_DIR = resolve(ROOT, ".claude/agents");
+const ROOT        = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const AGENTS_DIR  = resolve(ROOT, ".claude/agents");
+const LIBRARY_DIR = resolve(AGENTS_DIR, "library");
 
-// ── Helper: send JSON-RPC lines to the local MCP server ──────
+// ── MCP helper ────────────────────────────────────────────────
 function callMCP(requests) {
   return new Promise((resolve, reject) => {
     const proc = spawn("node", ["scripts/agents-mcp-server.js"], {
       cwd: ROOT,
       stdio: ["pipe", "pipe", "pipe"],
     });
-
     let out = "";
     proc.stdout.on("data", (d) => (out += d));
-    proc.stderr.on("data", () => {}); // suppress startup log
-
-    const input = requests.map((r) => JSON.stringify(r)).join("\n") + "\n";
-    proc.stdin.write(input);
+    proc.stderr.on("data", () => {});
+    proc.stdin.write(requests.map((r) => JSON.stringify(r)).join("\n") + "\n");
     proc.stdin.end();
-
     proc.on("close", () => {
       try {
-        const lines = out.trim().split("\n").filter(Boolean);
-        const results = lines.map((l) => JSON.parse(l));
+        const results = out.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
         resolve(results);
       } catch (e) {
         reject(new Error(`MCP parse error: ${e.message}\nRaw: ${out}`));
       }
     });
-
-    setTimeout(() => { proc.kill(); reject(new Error("MCP server timeout")); }, 5000);
+    setTimeout(() => { proc.kill(); reject(new Error("MCP timeout")); }, 8000);
   });
 }
 
-function toolResult(response) {
-  return JSON.parse(response.result?.content?.[0]?.text || "{}");
-}
+const INIT = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "test", version: "1" } } };
+const toolResult = (res) => JSON.parse(res.result?.content?.[0]?.text || "{}");
 
-// ── Tests ─────────────────────────────────────────────────────
-
-describe("Persona overlay files", () => {
-  it("architect.md exists and has enterprise identity fields", () => {
-    const path = resolve(AGENTS_DIR, "architect.md");
-    assert.ok(existsSync(path), "architect.md not found");
+// ── Overlay files ─────────────────────────────────────────────
+describe("Overlay persona files", () => {
+  it("ceo.md exists with enterprise identity and Project Factory section", () => {
+    const path = resolve(AGENTS_DIR, "ceo.md");
+    assert.ok(existsSync(path), "ceo.md not found in .claude/agents/");
     const content = readFileSync(path, "utf8");
     assert.ok(content.includes("agent-digitals-git-orchestrator"), "missing bot identity");
-    assert.ok(content.includes("extends:"), "missing extends reference to upstream");
-    assert.ok(content.includes("upstream/engineering/"), "extends must point to upstream dir");
+    assert.ok(content.includes("Project Factory"), "missing Project Factory Workflow section");
+    assert.ok(content.includes("projects-registry.json"), "should reference projects-registry.json");
   });
 
-  it("team-lead.md exists and extends multiple upstream personas", () => {
-    const path = resolve(AGENTS_DIR, "team-lead.md");
-    assert.ok(existsSync(path), "team-lead.md not found");
-    const content = readFileSync(path, "utf8");
-    assert.ok(content.includes("extends:"), "missing extends");
-    assert.ok(content.includes("engineering-senior-developer"), "should extend senior-developer");
-    assert.ok(content.includes("engineering-git-workflow-master"), "should extend git-workflow-master");
-  });
-
-  it("qa-engineer.md exists and extends code-reviewer and security-engineer", () => {
-    const path = resolve(AGENTS_DIR, "qa-engineer.md");
-    assert.ok(existsSync(path), "qa-engineer.md not found");
-    const content = readFileSync(path, "utf8");
-    assert.ok(content.includes("engineering-code-reviewer"), "should extend code-reviewer");
-    assert.ok(content.includes("engineering-security-engineer"), "should extend security-engineer");
+  it("no stale overlay files exist (architect.md / team-lead.md / qa-engineer.md removed)", () => {
+    for (const stale of ["architect.md", "team-lead.md", "qa-engineer.md"]) {
+      assert.ok(
+        !existsSync(resolve(AGENTS_DIR, stale)),
+        `${stale} should not exist — roles now loaded directly from library/`
+      );
+    }
   });
 });
 
-describe("Upstream submodule", () => {
-  it("upstream directory exists (submodule cloned)", () => {
-    assert.ok(existsSync(resolve(AGENTS_DIR, "upstream")), "upstream submodule not cloned");
+// ── Library structure ─────────────────────────────────────────
+describe("Agent library", () => {
+  it("library/ directory exists", () => {
+    assert.ok(existsSync(LIBRARY_DIR), "library/ not found in .claude/agents/");
   });
 
-  it("upstream engineering agents are available", () => {
+  it("library has at least 8 categories", () => {
+    const categories = readdirSync(LIBRARY_DIR).filter(e =>
+      !e.startsWith(".") && !e.endsWith(".md")
+    );
+    assert.ok(categories.length >= 8, `Expected >= 8 categories, got ${categories.length}: ${categories.join(", ")}`);
+  });
+
+  it("core library-backed roles exist in library/engineering/", () => {
     const required = [
       "engineering-software-architect.md",
-      "engineering-code-reviewer.md",
       "engineering-senior-developer.md",
+      "engineering-code-reviewer.md",
       "engineering-git-workflow-master.md",
       "engineering-security-engineer.md",
+      "engineering-backend-architect.md",
+      "engineering-frontend-developer.md",
     ];
     for (const file of required) {
-      const p = resolve(AGENTS_DIR, "upstream/engineering", file);
-      assert.ok(existsSync(p), `Missing upstream agent: ${file}`);
+      const p = resolve(LIBRARY_DIR, "engineering", file);
+      assert.ok(existsSync(p), `Missing core library agent: ${file}`);
     }
   });
 
-  it("upstream extended by architect overlay actually exists", () => {
-    // Parse extends field from architect.md frontmatter
-    const content = readFileSync(resolve(AGENTS_DIR, "architect.md"), "utf8");
-    const match = content.match(/extends:\s*(.+)/);
-    assert.ok(match, "No extends field in architect.md");
-    const ref = match[1].trim();
-    const refPath = resolve(AGENTS_DIR, ref);
-    assert.ok(existsSync(refPath), `Upstream file referenced in extends not found: ${ref}`);
+  it("library has agents in design, testing, marketing, and strategy", () => {
+    for (const cat of ["design", "testing", "marketing", "strategy"]) {
+      const dir = resolve(LIBRARY_DIR, cat);
+      assert.ok(existsSync(dir), `Category missing: ${cat}`);
+      const files = readdirSync(dir).filter(f => f.endsWith(".md"));
+      assert.ok(files.length > 0, `Category ${cat} is empty`);
+    }
   });
 });
 
+// ── MCP server init ───────────────────────────────────────────
 describe("MCP server — initialize", () => {
-  it("responds to initialize with correct server name", async () => {
-    const [res] = await callMCP([{
-      jsonrpc: "2.0", id: 1, method: "initialize",
-      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "test", version: "1" } },
-    }]);
+  it("responds with correct server name and version 3", async () => {
+    const [res] = await callMCP([INIT]);
     assert.equal(res.result.serverInfo.name, "agency-agents-filesystem");
+    assert.equal(res.result.serverInfo.version, "3.0.0");
   });
 
-  it("lists exactly 4 tools", async () => {
-    const [, res] = await callMCP([
-      { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "t", version: "1" } } },
-      { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
+  it("exposes exactly 7 tools", async () => {
+    const [, res] = await callMCP([INIT, { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }]);
+    const names = res.result.tools.map((t) => t.name).sort();
+    assert.deepEqual(names, [
+      "get_library_agent",
+      "get_output_prefix",
+      "get_persona",
+      "list_library",
+      "list_personas",
+      "resolve_role",
+      "search_library",
     ]);
-
-    assert.equal(res.result.tools.length, 4);
-    const names = res.result.tools.map((t) => t.name);
-    assert.deepEqual(names.sort(), ["get_output_prefix", "get_persona", "list_personas", "resolve_role"]);
   });
 });
 
+// ── MCP — list_personas ───────────────────────────────────────
+describe("MCP server — list_personas", () => {
+  it("returns CEO overlay + 3 library-backed roles", async () => {
+    const [, res] = await callMCP([INIT, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_personas", arguments: {} } }]);
+    const data = toolResult(res);
+    assert.ok(Array.isArray(data.personas), "personas should be array");
+    assert.ok(data.personas.length >= 4, `Expected >= 4 personas, got ${data.personas.length}`);
+    const keys = data.personas.map(p => p.key);
+    assert.ok(keys.includes("ceo"), "ceo persona missing");
+    assert.ok(keys.includes("architect"), "architect persona missing");
+    assert.ok(keys.includes("team-lead"), "team-lead persona missing");
+    assert.ok(keys.includes("qa"), "qa persona missing");
+  });
+
+  it("CEO is overlay source, others are library source", async () => {
+    const [, res] = await callMCP([INIT, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_personas", arguments: {} } }]);
+    const data = toolResult(res);
+    const ceo = data.personas.find(p => p.key === "ceo");
+    const arch = data.personas.find(p => p.key === "architect");
+    assert.equal(ceo.source, "overlay");
+    assert.equal(arch.source, "library");
+  });
+});
+
+// ── MCP — resolve_role ────────────────────────────────────────
 describe("MCP server — resolve_role", () => {
   const cases = [
-    { comment: "Role needed: Team Lead — implement auth", expected: "team-lead" },
-    { comment: "[ARCHITECT] design the new payment service", expected: "architect" },
-    { comment: "[QA] review PR #12 and validate tests", expected: "qa" },
-    { comment: "build the user dashboard component", expected: "team-lead" },
-    { comment: "no keywords here at all", expected: "architect" }, // default
+    { comment: "[CEO] plan the new payments project", expected: "ceo" },
+    { comment: "research competitors for this feature", expected: "ceo" },
+    { comment: "[ARCHITECT] design the auth service", expected: "architect" },
+    { comment: "[LEAD] implement the user dashboard", expected: "team-lead" },
+    { comment: "build the API endpoint for profiles", expected: "team-lead" },
+    { comment: "[QA] review PR #42", expected: "qa" },
+    { comment: "no keywords here", expected: "ceo" }, // default is now CEO
   ];
 
   for (const { comment, expected } of cases) {
-    it(`resolves "${comment.slice(0, 40)}..." → ${expected}`, async () => {
+    it(`"${comment.slice(0, 45)}..." → ${expected}`, async () => {
       const [, res] = await callMCP([
-        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "t", version: "1" } } },
-        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "resolve_role", arguments: { comment_text: comment } } },
+        INIT,
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "resolve_role", arguments: { comment_text: comment } } },
       ]);
       const data = toolResult(res);
-      assert.equal(data.resolved_key, expected, `Expected ${expected}, got ${data.resolved_key}`);
+      assert.equal(data.resolved_key, expected);
     });
   }
 });
 
+// ── MCP — get_persona ─────────────────────────────────────────
 describe("MCP server — get_persona", () => {
-  for (const key of ["architect", "team-lead", "qa"]) {
-    it(`loads persona '${key}' with content`, async () => {
+  for (const key of ["ceo", "architect", "team-lead", "qa"]) {
+    it(`loads '${key}' with content > 100 chars`, async () => {
       const [, res] = await callMCP([
-        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "t", version: "1" } } },
-        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_persona", arguments: { key } } },
+        INIT,
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "get_persona", arguments: { key } } },
       ]);
       const data = toolResult(res);
-      assert.ok(data.content, `No content returned for persona '${key}'`);
-      assert.ok(data.content.length > 100, "Content too short — file may be empty");
+      assert.ok(!data.error, `Error for '${key}': ${data.error}`);
+      assert.ok(data.content?.length > 100, `Content too short for '${key}'`);
     });
   }
 
-  it("returns error for unknown persona key", async () => {
+  it("returns error for unknown key", async () => {
     const [, res] = await callMCP([
-      { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "t", version: "1" } } },
-      { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_persona", arguments: { key: "nonexistent" } } },
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "get_persona", arguments: { key: "nonexistent" } } },
     ]);
     const data = toolResult(res);
     assert.ok(data.error, "Should return error for unknown key");
   });
 });
 
+// ── MCP — list_library ────────────────────────────────────────
+describe("MCP server — list_library", () => {
+  it("returns 100+ agents total", async () => {
+    const [, res] = await callMCP([
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_library", arguments: {} } },
+    ]);
+    const data = toolResult(res);
+    assert.ok(data.total >= 100, `Expected >= 100 library agents, got ${data.total}`);
+  });
+
+  it("filters by category: engineering returns only engineering agents", async () => {
+    const [, res] = await callMCP([
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_library", arguments: { category: "engineering" } } },
+    ]);
+    const data = toolResult(res);
+    assert.ok(data.total > 0, "Should return engineering agents");
+    assert.ok(data.agents.every(a => a.category === "engineering"), "All agents should be in engineering category");
+  });
+});
+
+// ── MCP — search_library ──────────────────────────────────────
+describe("MCP server — search_library", () => {
+  it("finds security-related agents", async () => {
+    const [, res] = await callMCP([
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "search_library", arguments: { keyword: "security" } } },
+    ]);
+    const data = toolResult(res);
+    assert.ok(data.total >= 1, "Should find at least 1 security agent");
+    assert.ok(data.results.some(r => r.file.includes("security")), "Should find security engineer");
+  });
+
+  it("finds blockchain agents", async () => {
+    const [, res] = await callMCP([
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "search_library", arguments: { keyword: "blockchain" } } },
+    ]);
+    const data = toolResult(res);
+    assert.ok(data.total >= 1, "Should find blockchain agent");
+  });
+
+  it("returns tip on no results", async () => {
+    const [, res] = await callMCP([
+      INIT,
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "search_library", arguments: { keyword: "xyznotexist99" } } },
+    ]);
+    const data = toolResult(res);
+    assert.equal(data.total, 0);
+    assert.ok(data.tip, "Should return a tip when no results found");
+  });
+});
+
+// ── MCP — get_output_prefix ───────────────────────────────────
 describe("MCP server — get_output_prefix", () => {
   const expected = {
-    "architect":  "### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect",
-    "team-lead":  "### 🤖 agent-digitals-git-orchestrator — 🔧 Team Lead",
-    "qa":         "### 🤖 agent-digitals-git-orchestrator — 🔍 QA Engineer",
+    "ceo":       "### 🤖 agent-digitals-git-orchestrator — 👔 CEO",
+    "architect": "### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect",
+    "team-lead": "### 🤖 agent-digitals-git-orchestrator — 🔧 Team Lead",
+    "qa":        "### 🤖 agent-digitals-git-orchestrator — 🔍 QA Engineer",
   };
 
   for (const [key, prefix] of Object.entries(expected)) {
-    it(`returns correct prefix for '${key}'`, async () => {
+    it(`correct prefix for '${key}'`, async () => {
       const [, res] = await callMCP([
-        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "t", version: "1" } } },
-        { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "get_output_prefix", arguments: { key } } },
+        INIT,
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "get_output_prefix", arguments: { key } } },
       ]);
       const data = toolResult(res);
       assert.equal(data.prefix, prefix);

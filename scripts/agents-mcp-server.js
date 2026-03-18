@@ -6,14 +6,15 @@
  * Reads .claude/agents/*.md (overlays) and .claude/agents/library/**\/*.md (full library).
  *
  * MCP Tools exposed:
- *   list_personas     — List overlay personas + library categories/agents
- *   get_persona       — Load a persona by key (overlay) or library path
+ *   list_personas     — List overlay personas
+ *   get_persona       — Load an overlay persona by key
  *   resolve_role      — Given last issue comment text, return the correct persona
  *   get_output_prefix — Return the GitHub comment prefix for a role
  *   list_library      — List all agents in the library, optionally filtered by category
- *   get_library_agent — Load a library agent by category/filename
+ *   get_library_agent — Load a library agent by category/filename path
+ *   search_library    — Search library agents by keyword (name or content)
  *
- * Usage (in mcp-config.json):
+ * Usage (in .mcp.json):
  *   "command": "node",
  *   "args": ["scripts/agents-mcp-server.js"]
  *
@@ -21,7 +22,7 @@
  */
 
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { resolve, dirname, relative, join } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT        = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -29,59 +30,103 @@ const AGENTS_DIR  = resolve(ROOT, ".claude/agents");
 const LIBRARY_DIR = resolve(AGENTS_DIR, "library");
 
 // ── Overlay Persona index ─────────────────────────────────────
+// Only personas with actual overlay files in .claude/agents/
 const PERSONA_MAP = {
-  ceo:        { file: "ceo.md",         symbol: "👔", triggers: ["CEO","research","strategy","decide agents","plan project","portfolio","brief"] },
-  architect:  { file: "architect.md",   symbol: "🏛️", triggers: ["ARCHITECT","design","plan","architecture","breakdown","spec"] },
-  "team-lead":{ file: "team-lead.md",   symbol: "🔧", triggers: ["LEAD","implement","build","code","fix","develop"] },
-  qa:         { file: "qa-engineer.md", symbol: "🔍", triggers: ["QA","review","test","validate","check","approve"] },
+  ceo: {
+    file: "ceo.md",
+    symbol: "👔",
+    triggers: ["CEO", "research", "strategy", "decide agents", "plan project", "portfolio", "brief"],
+  },
 };
 
 const PERSONA_LABELS = {
-  "ceo":       "CEO",
-  "architect": "Architect",
-  "team-lead": "Team Lead",
-  "qa":        "QA Engineer",
+  ceo: "CEO",
+};
+
+// Role resolution — falls back to library paths when no overlay exists
+const ROLE_ROUTING = {
+  architect: {
+    symbol: "🏛️",
+    label: "Architect",
+    library_path: "engineering/engineering-software-architect.md",
+    triggers: ["ARCHITECT", "design", "plan", "architecture", "breakdown", "spec"],
+  },
+  "team-lead": {
+    symbol: "🔧",
+    label: "Team Lead",
+    library_path: "engineering/engineering-senior-developer.md",
+    triggers: ["LEAD", "implement", "build", "code", "fix", "develop"],
+  },
+  qa: {
+    symbol: "🔍",
+    label: "QA Engineer",
+    library_path: "engineering/engineering-code-reviewer.md",
+    triggers: ["QA", "review", "test", "validate", "check", "approve"],
+  },
 };
 
 function loadPersona(key) {
-  const meta = PERSONA_MAP[key];
-  if (!meta) return null;
-  const path = resolve(AGENTS_DIR, meta.file);
-  if (!existsSync(path)) return null;
-  return { key, ...meta, content: readFileSync(path, "utf8") };
+  // Check overlay first
+  if (PERSONA_MAP[key]) {
+    const path = resolve(AGENTS_DIR, PERSONA_MAP[key].file);
+    if (!existsSync(path)) return null;
+    return { key, ...PERSONA_MAP[key], content: readFileSync(path, "utf8"), source: "overlay" };
+  }
+  // Fall back to library
+  if (ROLE_ROUTING[key]) {
+    const route = ROLE_ROUTING[key];
+    const path = resolve(LIBRARY_DIR, route.library_path);
+    if (!existsSync(path)) return null;
+    return {
+      key,
+      symbol: route.symbol,
+      file: route.library_path,
+      content: readFileSync(path, "utf8"),
+      source: "library",
+    };
+  }
+  return null;
 }
 
 function resolveRole(commentText) {
   const text = (commentText || "").toLowerCase();
-  for (const [key, meta] of Object.entries(PERSONA_MAP)) {
-    for (const trigger of meta.triggers) {
+  // Check CEO overlay triggers first
+  for (const trigger of PERSONA_MAP.ceo.triggers) {
+    if (text.includes(trigger.toLowerCase())) return "ceo";
+  }
+  // Check library-backed role triggers
+  for (const [key, route] of Object.entries(ROLE_ROUTING)) {
+    for (const trigger of route.triggers) {
       if (text.includes(trigger.toLowerCase())) return key;
     }
   }
-  return "architect"; // default bootstrap role
+  return "ceo"; // default: CEO bootstraps all new work
 }
 
 function getOutputPrefix(key) {
-  const meta = PERSONA_MAP[key];
-  if (!meta) return "### 🤖 agent-digitals-git-orchestrator";
-  const label = PERSONA_LABELS[key] || key;
-  return `### 🤖 agent-digitals-git-orchestrator — ${meta.symbol} ${label}`;
+  if (PERSONA_MAP[key]) {
+    const label = PERSONA_LABELS[key] || key;
+    return `### 🤖 agent-digitals-git-orchestrator — ${PERSONA_MAP[key].symbol} ${label}`;
+  }
+  if (ROLE_ROUTING[key]) {
+    const route = ROLE_ROUTING[key];
+    return `### 🤖 agent-digitals-git-orchestrator — ${route.symbol} ${route.label}`;
+  }
+  return "### 🤖 agent-digitals-git-orchestrator";
 }
 
 // ── Library scanner ───────────────────────────────────────────
 function scanLibrary(categoryFilter) {
   if (!existsSync(LIBRARY_DIR)) return [];
   const results = [];
-  const categories = readdirSync(LIBRARY_DIR).filter(entry => {
+  const entries = readdirSync(LIBRARY_DIR);
+  for (const entry of entries) {
     const full = join(LIBRARY_DIR, entry);
-    return statSync(full).isDirectory() && !entry.startsWith(".");
-  });
-  for (const cat of categories) {
-    if (categoryFilter && cat !== categoryFilter) continue;
-    const catDir = join(LIBRARY_DIR, cat);
-    const files = readdirSync(catDir).filter(f => f.endsWith(".md"));
+    if (!statSync(full).isDirectory() || entry.startsWith(".")) continue;
+    if (categoryFilter && entry !== categoryFilter) continue;
+    const files = readdirSync(full).filter(f => f.endsWith(".md"));
     for (const file of files) {
-      results.push({ category: cat, file, path: `${cat}/${file}` });
+      results.push({ category: entry, file, path: `${entry}/${file}` });
     }
   }
   return results;
@@ -93,59 +138,81 @@ function loadLibraryAgent(agentPath) {
   return { path: agentPath, content: readFileSync(full, "utf8") };
 }
 
-// ── MCP Tools definition ──────────────────────────────────────
+function searchLibrary(keyword) {
+  const q = keyword.toLowerCase();
+  const all = scanLibrary(null);
+  const results = [];
+  for (const agent of all) {
+    const nameMatch = agent.file.toLowerCase().includes(q) || agent.category.toLowerCase().includes(q);
+    if (nameMatch) {
+      results.push({ ...agent, match: "name" });
+      continue;
+    }
+    // Content search — first 30 lines only for speed
+    try {
+      const full = join(LIBRARY_DIR, agent.path);
+      const preview = readFileSync(full, "utf8").split("\n").slice(0, 30).join("\n");
+      if (preview.toLowerCase().includes(q)) {
+        results.push({ ...agent, match: "content_preview" });
+      }
+    } catch {}
+  }
+  return results;
+}
+
+// ── MCP Tools ─────────────────────────────────────────────────
 const TOOLS = [
   {
     name: "list_personas",
-    description: "List all overlay agent personas (CEO, Architect, Team Lead, QA) with their triggers",
+    description: "List all active agent personas — overlays (CEO) and library-backed roles (Architect, Team Lead, QA)",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "get_persona",
-    description: "Load an overlay persona definition by key (ceo | architect | team-lead | qa)",
+    description: "Load a persona by key. Overlays: ceo. Library-backed: architect, team-lead, qa",
     inputSchema: {
       type: "object",
       required: ["key"],
       properties: {
-        key: { type: "string", description: "Persona key: ceo | architect | team-lead | qa" },
+        key: { type: "string", description: "ceo | architect | team-lead | qa" },
       },
     },
   },
   {
     name: "resolve_role",
-    description: "Given the last GitHub issue comment text, determine which persona/role to assume",
+    description: "Given the last GitHub issue comment text, determine which role to assume",
     inputSchema: {
       type: "object",
       required: ["comment_text"],
       properties: {
-        comment_text: { type: "string", description: "Raw text of the last issue comment" },
+        comment_text: { type: "string" },
       },
     },
   },
   {
     name: "get_output_prefix",
-    description: "Get the required GitHub comment prefix string for a given role",
+    description: "Get the GitHub comment prefix string for a given role key",
     inputSchema: {
       type: "object",
       required: ["key"],
       properties: {
-        key: { type: "string", description: "Persona key: ceo | architect | team-lead | qa" },
+        key: { type: "string", description: "ceo | architect | team-lead | qa" },
       },
     },
   },
   {
     name: "list_library",
-    description: "List all agents available in .claude/agents/library/, optionally filtered by category",
+    description: "List all 100+ agents in .claude/agents/library/, optionally filtered by category",
     inputSchema: {
       type: "object",
       properties: {
-        category: { type: "string", description: "Optional category filter (e.g. engineering, design, testing)" },
+        category: { type: "string", description: "engineering | design | testing | marketing | product | strategy | sales | project-management | specialized | spatial-computing | game-development" },
       },
     },
   },
   {
     name: "get_library_agent",
-    description: "Load a library agent by its path relative to library/ (e.g. engineering/engineering-backend-architect.md)",
+    description: "Load a library agent by its path (e.g. engineering/engineering-backend-architect.md)",
     inputSchema: {
       type: "object",
       required: ["path"],
@@ -154,24 +221,49 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "search_library",
+    description: "Search library agents by keyword — matches agent name or first 30 lines of content. Use this to find the right specialist for a task.",
+    inputSchema: {
+      type: "object",
+      required: ["keyword"],
+      properties: {
+        keyword: { type: "string", description: "Search term, e.g. 'security', 'vue', 'seo', 'blockchain', 'postgres'" },
+      },
+    },
+  },
 ];
 
 function handleTool(name, args) {
   switch (name) {
     case "list_personas": {
-      const list = Object.entries(PERSONA_MAP).map(([key, meta]) => ({
+      const overlays = Object.entries(PERSONA_MAP).map(([key, meta]) => ({
         key,
-        file: meta.file,
         symbol: meta.symbol,
-        triggers: meta.triggers,
+        label: PERSONA_LABELS[key],
+        source: "overlay",
+        file: meta.file,
         available: existsSync(resolve(AGENTS_DIR, meta.file)),
+        triggers: meta.triggers,
       }));
-      return { personas: list };
+      const libraryBacked = Object.entries(ROLE_ROUTING).map(([key, route]) => ({
+        key,
+        symbol: route.symbol,
+        label: route.label,
+        source: "library",
+        file: route.library_path,
+        available: existsSync(resolve(LIBRARY_DIR, route.library_path)),
+        triggers: route.triggers,
+      }));
+      return { personas: [...overlays, ...libraryBacked] };
     }
 
     case "get_persona": {
       const persona = loadPersona(args.key);
-      if (!persona) return { error: `Persona '${args.key}' not found or file missing. Available keys: ${Object.keys(PERSONA_MAP).join(", ")}` };
+      if (!persona) {
+        const valid = [...Object.keys(PERSONA_MAP), ...Object.keys(ROLE_ROUTING)].join(", ");
+        return { error: `Persona '${args.key}' not found. Valid keys: ${valid}` };
+      }
       return persona;
     }
 
@@ -180,20 +272,17 @@ function handleTool(name, args) {
       const persona = loadPersona(key);
       return {
         resolved_key: key,
-        symbol: PERSONA_MAP[key]?.symbol,
         output_prefix: getOutputPrefix(key),
-        reason: "Matched trigger in comment text",
         persona_summary: persona?.content?.split("\n").slice(0, 8).join("\n"),
       };
     }
 
-    case "get_output_prefix": {
+    case "get_output_prefix":
       return { prefix: getOutputPrefix(args.key) };
-    }
 
     case "list_library": {
       const agents = scanLibrary(args.category || null);
-      const categories = [...new Set(agents.map(a => a.category))];
+      const categories = [...new Set(agents.map(a => a.category))].sort();
       return { total: agents.length, categories, agents };
     }
 
@@ -201,6 +290,18 @@ function handleTool(name, args) {
       const agent = loadLibraryAgent(args.path);
       if (!agent) return { error: `Library agent not found: ${args.path}` };
       return agent;
+    }
+
+    case "search_library": {
+      const results = searchLibrary(args.keyword);
+      return {
+        keyword: args.keyword,
+        total: results.length,
+        results,
+        tip: results.length === 0
+          ? "No matches. Try broader terms or use list_library to browse by category."
+          : `Found ${results.length} agent(s). Use get_library_agent with the path to load one.`,
+      };
     }
 
     default:
@@ -223,19 +324,16 @@ process.stdin.on("data", (chunk) => {
   buffer += chunk;
   const lines = buffer.split("\n");
   buffer = lines.pop();
-
   for (const line of lines) {
     if (!line.trim()) continue;
     let req;
     try { req = JSON.parse(line); } catch { continue; }
-
     const { id, method, params } = req;
-
     if (method === "initialize") {
       respond(id, {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "agency-agents-filesystem", version: "2.0.0" },
+        serverInfo: { name: "agency-agents-filesystem", version: "3.0.0" },
       });
     } else if (method === "tools/list") {
       respond(id, { tools: TOOLS });
@@ -251,4 +349,4 @@ process.stdin.on("data", (chunk) => {
 });
 
 process.stdin.on("end", () => process.exit(0));
-process.stderr.write("[agents-mcp-server] started — overlays: .claude/agents/ | library: .claude/agents/library/\n");
+process.stderr.write("[agents-mcp-server v3] overlays: .claude/agents/ | library: .claude/agents/library/ | tools: 7\n");

@@ -169,7 +169,7 @@ Output:
 | Reality Checker | `library/testing/testing-reality-checker.md` | Evidence-based QA gate |
 | Project Manager Senior | `library/project-management/project-manager-senior.md` | Retrospective |
 
-Enterprise overlays: `architect.md`, `team-lead.md`, `qa-engineer.md`
+Library-backed roles: `library/engineering/engineering-software-architect.md`, `library/engineering/engineering-senior-developer.md`, `library/engineering/engineering-code-reviewer.md`
 
 ---
 
