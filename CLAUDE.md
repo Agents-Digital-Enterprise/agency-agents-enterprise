@@ -181,16 +181,38 @@ Projects are tracked in **`projects-registry.json`** at the repo root — no git
 
 ## 8. MCP Servers
 
-Configured in `.claude/mcp-config.json` (gitignored — copy from `.claude/mcp-config.example.json`):
+Configured in `.mcp.json` (project root — read by Claude Code automatically):
 
 | Server | Type | Purpose |
 |---|---|---|
 | `agency-agents` | Local Node.js | Persona resolution + library browsing |
 | `filesystem` | npx | Read/write project files + `.claude/` dir |
-| `github` | npx | Full GitHub API (needs `GITHUB_TOKEN`) |
-| `sequential-thinking` | npx | Mandatory pre-coding step |
+| `terminal` | npx | Execute local shell commands |
 | `ast-grep` | npx | Structural code analysis — impact radius, symbol search |
-| `cloudflare` | npx | Cloudflare Workers/Pages API |
+| `git` | npx | Local git operations |
+| `docker` | npx | Local container testing |
+| `postgres` | npx | Connect to local/Supabase PostgreSQL |
+| `fetch` | npx | HTTP requests to local and external APIs |
+| `puppeteer` | npx | Headless browser — E2E and visual tests |
+| `github` | npx | Full GitHub API (needs `GITHUB_TOKEN`) |
+| `supabase` | npx | Supabase migrations and project management |
+| `cloudflare` | npx | Cloudflare Workers/Pages deploy and management |
+| `sequential-thinking` | npx | Forces step-by-step reasoning before implementation |
+
+### MCP-First Rule
+
+> **Always prefer MCP tools over raw shell commands or manual approaches.**
+
+Before writing code, running a CLI command, or fetching data — check if an MCP server can do it:
+
+- Read/write files → `filesystem` MCP, not `cat`/`echo`
+- Git operations → `git` MCP, not raw `git` bash
+- GitHub issues/PRs → `github` MCP, not `gh` CLI
+- HTTP calls → `fetch` MCP, not `curl`
+- DB queries → `postgres` MCP, not raw psql
+- Code impact analysis → `ast-grep` MCP, not manual file reading
+- Cloudflare deploy → `cloudflare` MCP, not raw `wrangler` CLI
+- Supabase migrations → `supabase` MCP, not manual SQL
 
 ---
 

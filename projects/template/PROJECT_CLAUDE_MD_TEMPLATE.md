@@ -17,6 +17,27 @@
 
 ---
 
+## MCP-First Rule
+
+> **Always prefer MCP tools over raw shell commands or manual approaches.**
+
+The master OS `.mcp.json` defines the available MCP servers. Before writing code or running CLI commands, check if an MCP can handle it:
+
+| Task | Use MCP |
+|---|---|
+| Read/write files | `filesystem` |
+| Git operations | `git` |
+| GitHub issues/PRs | `github` |
+| HTTP calls / API tests | `fetch` |
+| DB queries | `postgres` |
+| Code impact analysis | `ast-grep` |
+| Cloudflare deploy | `cloudflare` |
+| Supabase migrations | `supabase` |
+| Visual / E2E tests | `puppeteer` |
+| Shell commands (last resort) | `terminal` |
+
+---
+
 ## Session Checklist
 
 ```
@@ -24,8 +45,9 @@
 2. Read issue → determine role (see master OS Role Decision Matrix)
 3. Load persona from master OS .claude/agents/library/<category>/<agent>.md
 4. Post "Assuming <Role> on <Project>..." GitHub comment
-5. Do the work
-6. Post handoff comment
+5. Use MCP tools first (see MCP-First Rule above)
+6. Do the work
+7. Post handoff comment
 ```
 
 ---
