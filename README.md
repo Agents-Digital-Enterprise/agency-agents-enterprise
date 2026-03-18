@@ -1,26 +1,26 @@
 # Digital Enterprise OS
 
-> An autonomous multi-agent operating system for software development — powered by Claude Code, GitHub Apps, and a filesystem-first persona library.
+> An autonomous multi-agent operating system for software development — powered by Claude Code, GitHub Apps, and a filesystem-first agent library.
 
 ---
 
 ## What It Does
 
-This repository is the **control plane** for a team of AI agents that collaborate asynchronously to plan, build, review, and ship software. Instead of a single AI session doing everything, work is divided across specialised roles that hand off to each other via GitHub Issues — leaving a human-readable audit trail of every decision made.
+This repository is the **central control plane and project factory** for a fleet of AI agents that collaborate asynchronously to plan, build, review, and ship software. Work is divided across specialised roles that hand off via GitHub Issues — leaving a human-readable audit trail of every decision.
 
 ```
 You write an order in a GitHub Issue.
 ↓
-Architect reads it → decomposes into tasks → creates child Issues
+CEO reads it → researches → selects agents → structures project → creates issues
 ↓
-Team Lead picks up a task → thinks sequentially → writes tests first → implements → opens PR
+Architect decomposes into tasks → writes acceptance criteria
 ↓
-QA Engineer reviews → runs validation → merges or requests changes
+Team Lead implements with TDD → opens PR
 ↓
-Memory of every session persisted in persist-context/ for future agents to retrieve
+QA Engineer reviews → validates → merges or requests changes
 ```
 
-Each agent session can be started from any machine, by any operator — the GitHub Issue history and `persist-context/` memory carry full context forward.
+Each agent session can start from any machine — GitHub Issue history and Claude Code auto-memory carry full context forward.
 
 ---
 
@@ -39,36 +39,36 @@ Each agent session can be started from any machine, by any operator — the GitH
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                    AGENT PERSONA SYSTEM                      │  │
 │  │                                                              │  │
-│  │  .claude/agents/upstream/   (git submodule — org fork of    │  │
-│  │    engineering/             msitarzewski/agency-agents)      │  │
-│  │    design/                  100+ specialist agents           │  │
-│  │    testing/  ...                                             │  │
+│  │  .claude/agents/library/    Inline agent library             │  │
+│  │    engineering/             20+ engineering specialists       │  │
+│  │    design/                  UI/UX, brand, visual             │  │
+│  │    testing/                 QA, reality checker              │  │
+│  │    marketing/ product/      Full business stack              │  │
+│  │    strategy/ sales/ ...     100+ agents total                │  │
 │  │                                                              │  │
 │  │  .claude/agents/            Enterprise overlays              │  │
-│  │    architect.md   ──────►  extends Software Architect        │  │
-│  │    team-lead.md   ──────►  extends Senior Dev + Git Master   │  │
-│  │    qa-engineer.md ──────►  extends Code Reviewer + Security  │  │
+│  │    ceo.md         ──────►  👔 Project Factory CEO            │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                │                                                    │
 │                ▼                                                    │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                      MCP SERVER STACK                        │  │
 │  │                                                              │  │
-│  │  agency-agents      Local Node.js — reads .claude/agents/   │  │
+│  │  agency-agents      Local Node.js — personas + library scan  │  │
 │  │  filesystem         Read/write project files offline         │  │
 │  │  github             GitHub API — issues, PRs, comments       │  │
 │  │  sequential-think   Force step-by-step plan before coding    │  │
+│  │  ast-grep           Structural code analysis via AST         │  │
 │  │  promptfoo          Output quality validation gate           │  │
+│  │  cloudflare         Workers/Pages API                        │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                │                                                    │
 │                ▼                                                    │
 │  ┌──────────────────────────────────────────────────────────────┐  │
-│  │               MEMORY & AUTH                                  │  │
+│  │               PROJECTS & AUTH                                │  │
 │  │                                                              │  │
-│  │  persist-context/   Filesystem memory — L0/L1/L2 .md files  │  │
-│  │    L0-identity.md   Stable: project identity, stack, roles   │  │
-│  │    L1-session.md    Active: current sprint state             │  │
-│  │    L2-history/      Append-only: audit trail of sessions     │  │
+│  │  projects-registry.json     All managed projects (no        │  │
+│  │                             submodules — URL + stack only)   │  │
 │  │                                                              │  │
 │  │  GitHub App (ID: 2984613)                                    │  │
 │  │    scripts/github-app-token.js  →  .secrets/.env            │  │
@@ -85,179 +85,145 @@ Each agent session can be started from any machine, by any operator — the GitH
 ```
 agency-agents-enterprise/
 │
-├── CLAUDE.md                    # OS kernel — every agent reads this first
-├── AGENT_PROTOCOLS.md           # Choreography rules — handoff format, TDD, signing
-├── CONTRIBUTING_AGENTS.md       # Clean code standards for all agents
+├── CLAUDE.md                      # OS kernel — every agent reads this first
+├── AGENT_PROTOCOLS.md             # Choreography rules — handoff format, TDD, signing
+├── CONTRIBUTING_AGENTS.md         # Standards for all agents
+├── REFACTOR-PLAN.md               # Architecture refactor log
+│
+├── projects-registry.json         # All managed projects (name, url, stack, status)
+├── projects-registry.schema.json  # JSON Schema for registry validation
 │
 ├── workflows/
-│   └── enterprise-development.md  # 4-step sprint workflow (gstack-inspired)
+│   └── enterprise-development.md  # 4-step sprint workflow
 │
-├── scripts/                     # All Node.js ES Modules
-│   ├── github-app-token.js      # GitHub App JWT → installation token generator
-│   ├── github-logger.js         # Structured, signed GitHub comment poster
-│   ├── agents-mcp-server.js     # Local MCP server for persona resolution
-│   └── promptfoo-passthrough.js # PromptFoo provider for offline validation
+├── scripts/                       # All Node.js ES Modules
+│   ├── github-app-token.js        # GitHub App JWT → installation token
+│   ├── github-logger.js           # Signed GitHub comment poster
+│   ├── agents-mcp-server.js       # Local MCP server — persona resolution + library scan
+│   └── promptfoo-passthrough.js   # PromptFoo provider for offline validation
 │
-├── projects/                    # Project registry — one entry per managed repo
-│   ├── README.md                # Registry index + onboarding instructions
-│   └── template/                # Scaffold for new projects
-│       ├── config.json          # Repo URL, stack, Viking memory key
-│       └── PROJECT_CLAUDE_MD_TEMPLATE.md  # Template for project root CLAUDE.md
-│
-├── persist-context/             # Filesystem memory — zero dependencies
-│   ├── README.md                # Explains the L0/L1/L2 layer system
-│   ├── L0-identity.md           # Stable: OS identity, stack, roles
-│   ├── L1-session.md            # Active: current session state
-│   └── L2-history/              # Append-only: one .md per session snapshot
+├── projects/
+│   └── template/                  # Scaffold for new project repos
+│       ├── config.json            # Project metadata template
+│       ├── .env.example           # Environment variables template
+│       ├── .gitignore             # Standard ignores for projects
+│       ├── .code-review-graphignore
+│       ├── PROJECT_CLAUDE_MD_TEMPLATE.md
+│       └── scripts/               # Copies of auth scripts for self-contained projects
+│           ├── github-app-token.js
+│           └── github-logger.js
 │
 ├── .claude/
-│   ├── mcp-config.json          # MCP server registry (merge into claude_desktop_config)
-│   ├── agents/
-│   │   ├── upstream/            # git submodule → Agents-Digital-Enterprise/agency-agents
-│   │   ├── architect.md         # Enterprise overlay: 🏛️ Project Architect
-│   │   ├── team-lead.md         # Enterprise overlay: 🔧 Team Lead
-│   │   └── qa-engineer.md       # Enterprise overlay: 🔍 QA Engineer
-│   └── skills/
-│       └── viking-sync.js       # Filesystem memory sync (L1 write + L2 archive)
+│   ├── mcp-config.example.json    # MCP config template (mcp-config.json is gitignored)
+│   └── agents/
+│       ├── library/               # Full inline agent library (100+ agents, no submodule)
+│       │   ├── engineering/
+│       │   ├── design/
+│       │   ├── testing/
+│       │   ├── marketing/
+│       │   ├── product/
+│       │   ├── strategy/
+│       │   ├── sales/
+│       │   └── ...
+│       └── ceo.md                 # Enterprise overlay: 👔 CEO / Project Factory
 │
 ├── tests/
-│   └── agents/personas.test.js  # 20 integration tests — all passing
+│   └── agents/personas.test.js    # Persona system integration tests
 │
-├── promptfooconfig.yaml         # Agent output quality validation rules
-├── package.json                 # type: module, Node >= 18
-├── .gitmodules                  # Submodule: Agents-Digital-Enterprise/agency-agents
-├── .gitignore                   # Excludes .secrets/, .env, tokens
+├── promptfooconfig.yaml           # Agent output quality validation rules
+├── package.json                   # type: module, Node >= 18
+├── .gitignore                     # Excludes .secrets/, mcp-config.json, .env
+├── .code-review-graphignore
 │
-└── .secrets/                    # NEVER committed
-    ├── github-app.json          # App ID + private key path
-    ├── .env                     # Generated: GITHUB_TOKEN, GITHUB_APP_ID
-    └── mcp-servers.json         # Token-injected MCP config block
+└── .secrets/                      # NEVER committed
+    ├── github-app.json            # App ID + private key path
+    ├── .env                       # Generated: GITHUB_TOKEN, GITHUB_APP_ID
+    └── mcp-servers.json           # Token-injected MCP config
 ```
 
 ---
 
-## The Three Agent Roles
+## Agent Roles
 
-Every session starts by reading the last GitHub Issue comment to determine which role to assume.
+Every session starts by reading the last GitHub Issue comment to determine role.
 
-### 🏛️ Project Architect
-Translates human orders into structured engineering plans. Creates child GitHub Issues with acceptance criteria. Writes Architectural Decision Records. **Never writes production code.**
-- Base persona: `upstream/engineering/engineering-software-architect.md`
-- Trigger keywords: `[ARCHITECT]`, "design", "plan", "architecture"
+### 👔 CEO — Project Factory
+Researches the project, selects agents from the library, structures the master GitHub Issue, creates the repo, copies the template, registers in `projects-registry.json`. **Never writes code.**
+- Trigger: `[CEO]`, "strategy", "plan project", "research"
+
+### 🏛️ Architect
+Translates orders into structured engineering plans. Creates child Issues with acceptance criteria. Writes ADRs.
+- Base persona: `library/engineering/engineering-software-architect.md`
+- Trigger: `[ARCHITECT]`, "design", "plan", "architecture"
 
 ### 🔧 Team Lead
-Implements features with strict TDD. Uses the `sequential-thinking` MCP tool before every coding session. Opens PRs, never pushes to `main` directly.
-- Base personas: `upstream/engineering/engineering-senior-developer.md` + `upstream/engineering/engineering-git-workflow-master.md`
-- Trigger keywords: `[LEAD]`, "implement", "build", "code", "fix"
+Implements with TDD. Uses `sequential-thinking` MCP before coding. Opens PRs, never pushes to `main`.
+- Base personas: `library/engineering/engineering-senior-developer.md`
+- Trigger: `[LEAD]`, "implement", "build", "code", "fix"
 
 ### 🔍 QA Engineer
-The final gate. Runs tests independently, runs `promptfoo eval`, checks TDD compliance in git log, approves or requests changes. Closes issues only after all acceptance criteria are met.
-- Base personas: `upstream/engineering/engineering-code-reviewer.md` + `upstream/engineering/engineering-security-engineer.md`
-- Trigger keywords: `[QA]`, "review", "validate", "check"
+Final gate. Runs tests, `promptfoo eval`, checks TDD compliance. Closes issues only after all criteria met.
+- Base personas: `library/engineering/engineering-code-reviewer.md`
+- Trigger: `[QA]`, "review", "validate", "check"
 
-Adding more specialists is as simple as reading any file in `.claude/agents/upstream/` — 100+ agents available across engineering, design, testing, product, and strategy.
+Browse 100+ specialists via `agency-agents` MCP → `list_library` (filter by category).
 
 ---
 
-## How GitHub Authentication Works
+## Project Factory
 
-This system uses a **GitHub App** — not a personal token. Every session must start with:
+To create a new project, the CEO:
+
+1. Creates the repo via GitHub MCP
+2. Copies `projects/template/` into the new repo
+3. Selects and adapts agents from `.claude/agents/library/`
+4. Registers the project in `projects-registry.json`
+
+No `git submodule add` — ever. Projects are tracked by URL in the registry.
+
+---
+
+## Authentication
+
+GitHub App — not a personal token. Every session starts with:
 
 ```bash
-node scripts/github-app-token.js    # generates JWT → exchanges for 1h installation token
-source .secrets/.env                # loads GITHUB_TOKEN into shell
+node scripts/github-app-token.js    # JWT → 1h installation token → .secrets/.env
+source .secrets/.env
+echo "$GITHUB_TOKEN" | gh auth login --with-token
 ```
 
-The script reads `.secrets/github-app.json` (App ID + private key path), signs a JWT with RS256, calls the GitHub API to exchange it for an installation access token, and writes it to `.secrets/.env`, `.secrets/mcp-servers.json`, and `~/.config/gh/hosts.yml`. No browser, no OAuth flow, no `gh auth login`.
-
-On any 401 error — rerun: `node scripts/github-app-token.js --force && source .secrets/.env`
+On 401: `node scripts/github-app-token.js --force && source .secrets/.env`
 
 ---
 
 ## Session Flow
 
 ```
-1.  node scripts/github-app-token.js && source .secrets/.env
-2.  node .claude/skills/viking-sync.js master-os --retrieve   (load OS memory)
-3.  Read last GitHub Issue comment → determine role
-4.  If working on a project: read project root CLAUDE.md
-5.  node .claude/skills/viking-sync.js <issue-N> --retrieve  (load issue memory)
-6.  Read persona file: .claude/agents/<role>.md
-7.  node scripts/github-logger.js comment <N> <Role> "Assuming role..."
-8.  Do the work
-9.  node .claude/skills/viking-sync.js <issue-N>             (save memory)
-10. node scripts/github-logger.js handoff <N> <From> <To> "<summary>"
+1. node scripts/github-app-token.js && source .secrets/.env
+2. Read last GitHub Issue comment → determine role
+3. If working on a project: check projects-registry.json → read project CLAUDE.md
+4. Load persona: agency-agents MCP → resolve_role or get_library_agent
+5. node scripts/github-logger.js comment <N> <Role> "Assuming role..."
+6. Do the work
+7. node scripts/github-logger.js handoff <N> <From> <To> "<summary>"
 ```
-
----
-
-## Persistent Memory — persist-context/
-
-Zero-dependency filesystem memory. No server, no embeddings, no API keys.
-
-```bash
-node .claude/skills/viking-sync.js master-os            # write OS snapshot
-node .claude/skills/viking-sync.js master-os --retrieve # read current state
-node .claude/skills/viking-sync.js <issue-number>       # write issue snapshot
-node .claude/skills/viking-sync.js project/<slug>       # write project snapshot
-```
-
-| Layer | File | Purpose |
-|---|---|---|
-| L0 | `L0-identity.md` | Stable identity — project, stack, roles (rarely changes) |
-| L1 | `L1-session.md` | Active session state — overwritten each sync |
-| L2 | `L2-history/*.md` | Append-only archive — one file per sync, never deleted |
-
-Each project repo also gets its own `persist-context/` folder and a root `CLAUDE.md` as the agent contract for that project.
-
----
-
-## Every GitHub Comment Is Signed
-
-All agent output on GitHub begins with:
-
-```
-### 🤖 agent-digitals-git-orchestrator — 🏛️ Architect
-### 🤖 agent-digitals-git-orchestrator — 🔧 Team Lead
-### 🤖 agent-digitals-git-orchestrator — 🔍 QA Engineer
-```
-
-This makes every action traceable — who did what, in which role, on which issue.
 
 ---
 
 ## MCP Servers
 
-Configured in `.claude/mcp-config.json`. Merge the `mcpServers` block into your `claude_desktop_config.json`.
+Copy `.claude/mcp-config.example.json` to `.claude/mcp-config.json` and fill in your values. Merge `mcpServers` into `claude_desktop_config.json`.
 
-| Server | Type | Purpose | Requires |
-|---|---|---|---|
-| `agency-agents` | Local `node scripts/agents-mcp-server.js` | Resolve roles, load personas, get prefixes | Nothing — offline |
-| `filesystem` | `npx @modelcontextprotocol/server-filesystem` | Read/write project files | Nothing |
-| `github` | `npx @github/github-mcp-server` | Full GitHub API | `GITHUB_TOKEN` |
-| `sequential-thinking` | `npx @modelcontextprotocol/server-sequential-thinking` | Force step-by-step plans | Nothing |
-| `promptfoo` | `npx promptfoo mcp` | Validate agent comment quality | `npm i -g promptfoo` |
-
----
-
-## Quality Gates
-
-Nothing ships without passing:
-
-```bash
-node --test tests/agents/personas.test.js                  # 20 tests — persona system
-npx promptfoo eval --filter-providers passthrough          # 4 tests — comment structure
-```
-
-The `promptfoo` config validates that every agent comment has: identification header, summary, progress table, and metadata footer.
-
----
-
-## Inspiration: gstack
-
-This system draws from **[gstack](https://github.com/garrytan/gstack)** (Garry Tan / YC, March 2026) — the insight that giving Claude a *role* produces more consistent output than prompt variation. Where gstack is single-session and terminal-local, this enterprise OS is async, multi-session, and leaves a permanent audit trail in GitHub.
-
-See `workflows/enterprise-development.md` for the full comparison and sprint workflow.
+| Server | Purpose |
+|---|---|
+| `agency-agents` | Persona resolution + library browsing (`list_library`, `get_library_agent`) |
+| `filesystem` | Read/write project files offline |
+| `github` | Full GitHub API — issues, PRs, comments |
+| `sequential-thinking` | Force step-by-step plans before coding |
+| `ast-grep` | Structural code analysis — impact radius, symbol search |
+| `promptfoo` | Validate agent comment quality |
+| `cloudflare` | Cloudflare Workers/Pages API |
 
 ---
 
@@ -265,9 +231,8 @@ See `workflows/enterprise-development.md` for the full comparison and sprint wor
 
 | Repository | Purpose |
 |---|---|
-| [`agency-agents-enterprise`](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise) | Main OS repo — issues, PRs, workflow |
-| [`agency-agents`](https://github.com/Agents-Digital-Enterprise/agency-agents) | Org fork of persona library (submodule) |
-| [`agency-agents-testing`](https://github.com/Agents-Digital-Enterprise/agency-agents-testing) | Original testing ground (archived) |
+| [`agency-agents-enterprise`](https://github.com/Agents-Digital-Enterprise/agency-agents-enterprise) | This repo — OS control plane + project factory |
+| [`portfolio-luiszmarques`](https://github.com/Agents-Digital-Enterprise/portfolio-luiszmarques) | Active project — registered in projects-registry.json |
 
 ---
 

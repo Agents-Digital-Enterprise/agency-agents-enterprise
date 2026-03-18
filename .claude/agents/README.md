@@ -1,38 +1,54 @@
-# Agent Personas — Filesystem Registry
+# Agent Personas
 
-All agent personas are defined as local Markdown files in this directory.
-They are read by Claude via the `filesystem` MCP server — no external connection needed.
+All agent personas are defined as Markdown files in this directory and the `library/` subfolder.
+Loaded via the `agency-agents` MCP server — no external connection needed.
 
-## Available Personas
+## Overlay Personas (Enterprise-specific)
 
 | File | Persona | Symbol | Trigger |
 |---|---|---|---|
-| `architect.md` | Project Architect | 🏛️ | `[ARCHITECT]`, "design", "plan" |
-| `team-lead.md` | Team Lead | 🔧 | `[LEAD]`, "implement", "build" |
-| `qa-engineer.md` | QA Engineer | 🔍 | `[QA]`, "review", "validate" |
+| `ceo.md` | CEO / Project Factory | 👔 | `[CEO]`, "strategy", "plan project", "research" |
+
+> Note: Architect, Team Lead, and QA roles are loaded directly from `library/` — no local overlay files needed.
+
+## Agent Library
+
+The `library/` folder contains the full inline agent library — 100+ specialist agents across all domains.
+
+```
+library/
+├── engineering/     — backend, frontend, devops, security, mobile, etc.
+├── design/          — UI/UX, brand, visual storytelling
+├── testing/         — QA, accessibility, performance, reality checker
+├── marketing/       — SEO, social, content, paid media
+├── product/         — PM, sprint planning, feedback synthesis
+├── strategy/        — NEXUS orchestration, playbooks, runbooks
+├── sales/           — discovery, deal strategy, account management
+├── project-management/
+├── specialized/     — blockchain, compliance, MCP builder, etc.
+├── spatial-computing/
+└── game-development/
+```
 
 ## How to Load a Persona
 
-At session start, the agent reads CLAUDE.md, determines its role from the last GitHub Issue comment, then loads the corresponding persona file:
-
 ```bash
-# The filesystem MCP tool reads this automatically when Claude starts
-# Manually inspect any persona:
-cat .claude/agents/architect.md
-cat .claude/agents/team-lead.md
-cat .claude/agents/qa-engineer.md
+# Via MCP (in-session — preferred)
+# agency-agents MCP → list_library { category: "engineering" }
+# agency-agents MCP → get_library_agent { path: "engineering/engineering-backend-architect.md" }
+# agency-agents MCP → resolve_role { comment_text: "<last issue comment>" }
+
+# Manually inspect
+cat .claude/agents/ceo.md
+cat .claude/agents/library/engineering/engineering-software-architect.md
 ```
 
-## How to Add a Persona
+## How to Add or Update a Library Agent
 
-1. Create `.claude/agents/<name>.md` following the existing structure
-2. Add it to the table above
-3. Add trigger keywords to the Role Decision Matrix in `CLAUDE.md`
-4. No server restart needed — filesystem MCP reads on demand
+Edit the file directly in `library/<category>/`. No server restart needed — the MCP server reads on demand.
 
-## Why Filesystem Over Remote Server
+## How to Add an Enterprise Overlay
 
-- **Offline-first:** No external service dependency at session start
-- **Version controlled:** Persona changes tracked in git history
-- **Transparent:** Human-readable, easy to audit and modify
-- **Extensible:** Add personas by adding files, zero config changes
+1. Create `.claude/agents/<name>.md` following `ceo.md` as a reference
+2. Add trigger keywords to the Role Decision Matrix in `CLAUDE.md §4`
+3. Add the persona key to `scripts/agents-mcp-server.js` → `PERSONA_MAP`
