@@ -42,12 +42,15 @@ The master OS `.mcp.json` defines the available MCP servers. Before writing code
 
 ```
 1. Auth: node ./scripts/github-app-token.js && source .secrets/.env
-2. Read issue → determine role (see master OS Role Decision Matrix)
-3. Load persona from master OS .claude/agents/library/<category>/<agent>.md
-4. Post "Assuming <Role> on <Project>..." GitHub comment
-5. Use MCP tools first (see MCP-First Rule above)
-6. Do the work
-7. Post handoff comment
+2. Open or locate a GitHub Issue for this task — MANDATORY before any work begins
+   If no issue exists: GitHub MCP → create_issue { title, body }
+   Every task must have an issue so the human can see what is happening.
+3. Read issue → determine role (see master OS Role Decision Matrix)
+4. Load persona from master OS .claude/agents/library/<category>/<agent>.md
+5. Post "Assuming <Role> on <Project>..." GitHub comment
+6. Use MCP tools first (see MCP-First Rule above)
+7. Do the work
+8. Close issue with completion summary (GitHub MCP → update_issue { state: closed })
 ```
 
 ---

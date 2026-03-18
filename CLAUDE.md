@@ -59,9 +59,11 @@ node scripts/github-app-token.js
 source .secrets/.env
 echo "$GITHUB_TOKEN" | gh auth login --with-token
 
-# Step 2 — Read last issue comment → determine your role
-# Use GitHub MCP server get_issue tool, or:
-node scripts/github-logger.js comment <N> <Role> "Reading context..."
+# Step 2 — Open (or find) a GitHub Issue for this task
+# Every task — however small — must have a GitHub Issue so the human can track what is happening.
+# If no issue exists yet, create one before doing any work:
+#   GitHub MCP → create_issue { title: "<task title>", body: "<what + why>" }
+# If an issue already exists, read its last comment to determine your role.
 
 # Step 3 — If working on a project (not master OS tasks), read project root CLAUDE.md
 # Consult projects-registry.json to find the project URL/path, then read its CLAUDE.md
