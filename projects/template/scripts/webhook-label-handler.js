@@ -3,7 +3,7 @@
  * scripts/webhook-label-handler.js
  *
  * Resolves a GitHub "label added" webhook event to an agent identity.
- * Called when Cloudflare Worker receives a GitHub webhook with action: "labeled".
+ * Called when GitHub sends a webhook with action: "labeled" (label added to issue).
  *
  * Label convention (set by CEO when creating the project):
  *   name:        "agent:<key>"         e.g. "agent:security-engineer"
@@ -18,7 +18,7 @@
  *   node scripts/webhook-label-handler.js --file webhook.json
  *   echo '<json>' | node scripts/webhook-label-handler.js
  *
- * Output (stdout JSON — Cloudflare Worker / Claude Code reads this):
+ * Output (stdout JSON — read by Claude Code to bootstrap the agent session):
  *   {
  *     "agent_key":    "security-engineer",
  *     "library_path": "engineering/engineering-security-engineer.md",

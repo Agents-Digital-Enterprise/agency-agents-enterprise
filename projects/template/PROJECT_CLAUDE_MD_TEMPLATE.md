@@ -109,7 +109,7 @@ To browse available agents: `agency-agents MCP → list_library` or `search_libr
 
 ## Webhook — Label-Triggered Agent Sessions
 
-When a GitHub label of the form `agent:<key>` is added to an issue, the Cloudflare Worker fires a webhook that resolves the label to an agent session.
+When a GitHub label of the form `agent:<key>` is added to an issue, GitHub fires a webhook that resolves the label to an agent session.
 
 ### Label Convention (set by CEO at project creation)
 
@@ -135,7 +135,7 @@ Output: `{ agent_key, library_path, skills_file, issue_number, repo, session_cmd
 
 ```
 Issue labeled "agent:<key>"
-  → Cloudflare Worker receives GitHub webhook
+  → GitHub sends POST webhook to configured endpoint
   → node scripts/webhook-label-handler.js
   → resolves: label name + description → library path + skills file
   → Claude Code session starts with correct persona

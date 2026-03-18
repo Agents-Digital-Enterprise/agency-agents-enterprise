@@ -45,7 +45,7 @@ Triggered by GitHub label: `agent:security-engineer`
 ```
 GitHub issue labeled "agent:security-engineer"
         ↓
-Cloudflare Worker receives webhook
+GitHub sends POST webhook to configured endpoint
         ↓
 node scripts/webhook-label-handler.js '<payload>'
         ↓
