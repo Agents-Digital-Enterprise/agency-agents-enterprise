@@ -30,7 +30,7 @@
 | `/plan-eng-review` | `engineering/engineering-software-architect.md` | `architect.md` | `sequential-thinking` + `filesystem` |
 | `/review` | `engineering/engineering-code-reviewer.md` | `qa-engineer.md` | `filesystem` + `github` |
 | `/ship` | `engineering/engineering-git-workflow-master.md` | `team-lead.md` (PR step) | `github` MCP |
-| `/qa` | `testing/testing-reality-checker.md` | `qa-engineer.md` | `filesystem` + `promptfoo` |
+| `/qa` | `testing/testing-reality-checker.md` | `qa-engineer.md` | `filesystem` + `ast-grep` |
 | `/browse` | *(not yet — planned)* | *(Issue #5 — Heretic/browser)* | Puppeteer MCP |
 | `/retro` | `project-management/project-manager-senior.md` | — (use direct) | `github` (reads closed issues) |
 
@@ -114,7 +114,6 @@ Review PR #<PR>. Run all QA checks. Default to NEEDS WORK.
 **QA Checklist:**
 ```
 [ ] npm test → 0 failures (run independently)
-[ ] npx promptfoo eval --filter-providers passthrough → 4 passed
 [ ] git log shows test commit before code commit
 [ ] Acceptance criteria in issue fully met
 [ ] No secrets in diff

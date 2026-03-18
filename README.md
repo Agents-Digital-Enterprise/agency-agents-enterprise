@@ -59,7 +59,6 @@ Each agent session can start from any machine — GitHub Issue history and Claud
 │  │  github             GitHub API — issues, PRs, comments       │  │
 │  │  sequential-think   Force step-by-step plan before coding    │  │
 │  │  ast-grep           Structural code analysis via AST         │  │
-│  │  promptfoo          Output quality validation gate           │  │
 │  │  cloudflare         Workers/Pages API                        │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                │                                                    │
@@ -100,7 +99,6 @@ agency-agents-enterprise/
 │   ├── github-app-token.js        # GitHub App JWT → installation token
 │   ├── github-logger.js           # Signed GitHub comment poster
 │   ├── agents-mcp-server.js       # Local MCP server — persona resolution + library scan
-│   └── promptfoo-passthrough.js   # PromptFoo provider for offline validation
 │
 ├── projects/
 │   └── template/                  # Scaffold for new project repos
@@ -130,7 +128,6 @@ agency-agents-enterprise/
 ├── tests/
 │   └── agents/personas.test.js    # Persona system integration tests
 │
-├── promptfooconfig.yaml           # Agent output quality validation rules
 ├── package.json                   # type: module, Node >= 18
 ├── .gitignore                     # Excludes .secrets/, mcp-config.json, .env
 ├── .code-review-graphignore
@@ -162,7 +159,7 @@ Implements with TDD. Uses `sequential-thinking` MCP before coding. Opens PRs, ne
 - Trigger: `[LEAD]`, "implement", "build", "code", "fix"
 
 ### 🔍 QA Engineer
-Final gate. Runs tests, `promptfoo eval`, checks TDD compliance. Closes issues only after all criteria met.
+Final gate. Runs tests, checks TDD compliance. Closes issues only after all criteria met.
 - Base personas: `library/engineering/engineering-code-reviewer.md`
 - Trigger: `[QA]`, "review", "validate", "check"
 
@@ -222,7 +219,6 @@ Copy `.claude/mcp-config.example.json` to `.claude/mcp-config.json` and fill in 
 | `github` | Full GitHub API — issues, PRs, comments |
 | `sequential-thinking` | Force step-by-step plans before coding |
 | `ast-grep` | Structural code analysis — impact radius, symbol search |
-| `promptfoo` | Validate agent comment quality |
 | `cloudflare` | Cloudflare Workers/Pages API |
 
 ---
@@ -243,4 +239,3 @@ Copy `.claude/mcp-config.example.json` to `.claude/mcp-config.json` and fill in 
 | Node.js >= 18 | `node --version` |
 | GitHub App installed on org | App ID `2984613`, installation `113396256` |
 | Private key in `.secrets/` | `agent-digitals-git-orchestrator.*.pem` |
-| `promptfoo` global | `npm i -g promptfoo` |

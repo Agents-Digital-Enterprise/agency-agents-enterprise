@@ -190,7 +190,6 @@ Configured in `.claude/mcp-config.json` (gitignored — copy from `.claude/mcp-c
 | `github` | npx | Full GitHub API (needs `GITHUB_TOKEN`) |
 | `sequential-thinking` | npx | Mandatory pre-coding step |
 | `ast-grep` | npx | Structural code analysis — impact radius, symbol search |
-| `promptfoo` | npx | QA eval gate |
 | `cloudflare` | npx | Cloudflare Workers/Pages API |
 
 ---
@@ -208,9 +207,6 @@ node scripts/github-logger.js handoff N FromRole ToRole "msg"
 # Persona resolution (MCP)
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"resolve_role","arguments":{"comment_text":"<paste last comment>"}}}' \
   | node scripts/agents-mcp-server.js
-
-# QA
-npx promptfoo eval --config promptfooconfig.yaml
 ```
 
 ---

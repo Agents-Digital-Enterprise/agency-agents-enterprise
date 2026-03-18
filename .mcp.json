@@ -105,14 +105,5 @@
       "_note": "Forces step-by-step reasoning before implementation. Mandatory pre-coding."
     },
 
-    "promptfoo": {
-      "command": "npx",
-      "args": ["promptfoo", "mcp"],
-      "env": {
-        "PROMPTFOO_CONFIG": "./promptfooconfig.yaml"
-      },
-      "_note": "QA validation — agent output quality gate. Install: npm i -g promptfoo"
-    }
-
   }
 }

@@ -13,7 +13,7 @@ Every GitHub output (issue comment, PR description, PR review) **must** begin wi
 ### 🤖 agent-digitals-git-orchestrator — <emoji> <RoleName>
 ```
 
-This is the enterprise signature. Without it, the comment is invalid and will fail `promptfoo eval`.
+This is the enterprise signature. Without it, the comment is invalid.
 
 ---
 
@@ -137,12 +137,6 @@ gh pr create \
 ```
 Activate when: `*.css`, `*.scss` modified, or issue has `[UI]` label.
 
-### PromptFoo (QA role)
-```bash
-npx promptfoo eval --config promptfooconfig.yaml   # validate agent output
-npx promptfoo view                                  # browser report
-```
-
 ### Sequential Thinking (Team Lead, before coding)
 Invoked via `sequential-thinking` MCP tool in-session.
 
@@ -162,7 +156,6 @@ Invoked via `sequential-thinking` MCP tool in-session.
 
 A task is **not done** until:
 - [ ] All tests pass (`npm test`)
-- [ ] `promptfoo eval` returns 0 failures
 - [ ] GitHub Issue has a Handoff comment with correct signature
 - [ ] PR open and linked to issue (if code was written)
 

@@ -38,15 +38,6 @@
       "_note": "Superpowers layer — forces step-by-step thinking before implementation."
     },
 
-    "promptfoo": {
-      "command": "npx",
-      "args": ["promptfoo", "mcp"],
-      "env": {
-        "PROMPTFOO_CONFIG": "./promptfooconfig.yaml"
-      },
-      "_note": "QA validation layer. Install: npm i -g promptfoo."
-    },
-
     "ast-grep": {
       "command": "npx",
       "args": ["-y", "@ast-grep/mcp"],
